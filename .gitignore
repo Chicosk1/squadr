@@ -1,0 +1,93 @@
+# ============================================================
+# DEPENDÊNCIAS
+# ============================================================
+node_modules
+.pnp
+.pnp.js
+
+# ============================================================
+# EXPO / REACT NATIVE
+# ============================================================
+.expo
+.expo-shared
+dist
+build
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# ============================================================
+# SUPABASE
+# ============================================================
+# Arquivos gerados pelo Supabase CLI localmente
+supabase/.branches
+supabase/.temp
+# Tipos gerados automaticamente — podem ser regenerados
+# packages/supabase/types.ts  ← descomente se preferir não versionar
+
+# ============================================================
+# VARIÁVEIS DE AMBIENTE — NUNCA SUBIR PARA O GITHUB
+# ============================================================
+.env
+.env.local
+.env.*.local
+.env.production
+apps/mobile/.env
+apps/mobile/.env.local
+
+# ============================================================
+# TURBOREPO
+# ============================================================
+.turbo
+
+# ============================================================
+# BUILD E CACHE
+# ============================================================
+.cache
+*.tsbuildinfo
+next-environment-variables-6f33f.js
+
+# ============================================================
+# LOGS
+# ============================================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================================
+# SISTEMA OPERACIONAL
+# ============================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================
+# IDEs E EDITORES
+# ============================================================
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ============================================================
+# TESTES E COBERTURA
+# ============================================================
+coverage/
+.nyc_output
