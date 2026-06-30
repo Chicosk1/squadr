@@ -5,8 +5,3 @@ CREATE TABLE games (
   platform   text,
   cover_url  text
 );
-
--- games: leitura pública, sem escrita pelo usuário
-ALTER TABLE games ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "games_select" ON games
-  FOR SELECT TO authenticated USING (true);

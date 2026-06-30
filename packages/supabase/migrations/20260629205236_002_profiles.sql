@@ -27,18 +27,3 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
-
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
--- Qualquer usuário autenticado pode ver perfis
-CREATE POLICY "profiles_select" ON profiles
-  FOR SELECT TO authenticated
-  USING (true);
-
--- Usuário só edita o próprio perfil
-CREATE POLICY "profiles_update" ON profiles
-  FOR UPDATE TO authenticated
-  USING (auth.uid() = id);
-
--- Usuário não pode deletar perfil diretamente
--- (só via cascade quando a conta auth é deletada)
