@@ -115,33 +115,33 @@ squadr/
 
 ## 3. Regra de nomenclatura (convenção usada no projeto)
 
-- [ ] Telas e componentes React: `PascalCase.tsx` (ex: `PlayerCard.tsx`)
-- [ ] Hooks: `useAlgumaCoisa.ts`, sempre começando com `use`
-- [ ] Serviços e utilitários: `kebab-case.ts` ou `camelCase.ts` (ex:
+- [x] Telas e componentes React: `PascalCase.tsx` (ex: `PlayerCard.tsx`)
+- [x] Hooks: `useAlgumaCoisa.ts`, sempre começando com `use`
+- [x] Serviços e utilitários: `kebab-case.ts` ou `camelCase.ts` (ex:
       `discord-oauth.ts`)
-- [ ] Migrations do Supabase: `NNN_descricao_curta.sql`, número sequencial de
+- [x] Migrations do Supabase: `NNN_descricao_curta.sql`, número sequencial de
       3 dígitos (ex: `011_create_commendations_table.sql`)
-- [ ] ADRs: `NNN-titulo-curto.md`, mesmo padrão de numeração
+- [x] ADRs: `NNN-titulo-curto.md`, mesmo padrão de numeração
 
 ---
 
 ## 4. Criando a estrutura no computador
 
-- [ ] Dentro da pasta `squadr/`, criar as pastas de nível 1:
+- [x] Dentro da pasta `squadr/`, criar as pastas de nível 1:
   ```bash
   mkdir -p src/components/ui src/components/feature src/services/supabase src/hooks src/types src/constants src/utils
   mkdir -p supabase/migrations
   mkdir -p docs/decisions
   mkdir -p assets/images assets/fonts
   ```
-- [ ] Mover o arquivo de contexto de produto (o markdown com a visão do
+- [x] Mover o arquivo de contexto de produto (o markdown com a visão do
       produto) para `docs/contexto-produto.md`
-- [ ] Mover o ADR-001 para `docs/decisions/001-migrations-e-rls-supabase.md`
-- [ ] Criar o arquivo `.env.example` (vazio por enquanto, será preenchido na Fase 3):
+- [x] Mover o ADR-001 para `docs/decisions/001-migrations-e-rls-supabase.md`
+- [x] Criar o arquivo `.env.example` (vazio por enquanto, será preenchido na Fase 3):
   ```bash
   touch .env.example
   ```
-- [ ] Confirmar que `.gitignore` já inclui `.env`, `node_modules` e pastas de
+- [x] Confirmar que `.gitignore` já inclui `.env`, `node_modules` e pastas de
       build do Expo (o template do `create-expo-app` já gera isso por
       padrão — só confirme abrindo o arquivo)
 
@@ -149,10 +149,10 @@ squadr/
 
 ## Antes de avançar
 
-- [ ] Estrutura de pastas de nível 1 criada e commitada no Git
-- [ ] Documentos existentes (`contexto-produto.md`, ADR-001) movidos para
+- [x] Estrutura de pastas de nível 1 criada e commitada no Git
+- [x] Documentos existentes (`contexto-produto.md`, ADR-001) movidos para
       dentro de `docs/`
-- [ ] Todos entendem o critério de "o que vai em cada pasta" (tabela da
+- [x] Todos entendem o critério de "o que vai em cada pasta" (tabela da
       seção 2) — isso evita decisões diferentes por quem trabalhar no
       projeto depois
 
