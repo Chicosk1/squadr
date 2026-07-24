@@ -1,6 +1,6 @@
 # Fase 3 — Backend: Banco de Dados & Autenticação
 
-**Status: 🟨 Parcial** — schema e RLS das 8 tabelas iniciais já aplicados (ver ADR-001)
+**Status: 🟨 Em andamento** — schema e RLS das 8 tabelas iniciais ainda pendentes (ver ADR-001)
 
 > Voltar para o [Roadmap principal](../ROADMAP.md) · Fase anterior: [02 — Estrutura do Projeto](./02-estrutura-do-projeto.md)
 
@@ -24,32 +24,32 @@ ponta.
 
 ## 1. Criando o projeto no Supabase
 
-- [ ] Acessar https://supabase.com/dashboard e criar um novo projeto
-- [ ] Escolher uma região próxima do Brasil (ex: São Paulo, se disponível, ou a mais próxima)
-- [ ] Guardar a senha do banco gerada nesse momento — vai precisar dela depois
-- [ ] No painel do projeto, ir em **Project Settings → API** e copiar:
+- [x] Acessar https://supabase.com/dashboard e criar um novo projeto
+- [x] Escolher uma região próxima do Brasil (ex: São Paulo, se disponível, ou a mais próxima)
+- [X] Guardar a senha do banco gerada
+- [x] No painel do projeto, ir em **Project Settings → API** e copiar:
   - `Project URL`
   - `anon public key`
-- [ ] Preencher o `.env` (nunca o `.env.example`) na raiz do projeto:
+- [x] Preencher o `.env` (nunca o `.env.example`) na raiz do projeto:
   ```
   EXPO_PUBLIC_SUPABASE_URL=https://SEU-PROJETO.supabase.co
   EXPO_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-aqui
   ```
-- [ ] Espelhar os nomes das variáveis (sem os valores reais) em `.env.example`, para quem clonar o projeto saber o que precisa configurar
+- [x] Espelhar os nomes das variáveis (sem os valores reais) em `.env.example`, para quem clonar o projeto saber o que precisa configurar
 
 ---
 
 ## 2. Conectando o Supabase CLI ao projeto remoto
 
-- [ ] Fazer login:
+- [x] Fazer login:
   ```bash
   supabase login
   ```
-- [ ] Dentro da pasta do projeto, vincular ao projeto remoto (o ID fica na URL do painel do Supabase):
+- [x] Dentro da pasta do projeto, vincular ao projeto remoto (o ID fica na URL do painel do Supabase):
   ```bash
   supabase link --project-ref SEU_PROJECT_REF
   ```
-- [ ] Confirmar quais migrations já foram aplicadas **antes de criar qualquer migration nova**:
+- [x] Confirmar quais migrations já foram aplicadas **antes de criar qualquer migration nova**:
   ```bash
   supabase migration list
   ```
@@ -61,42 +61,37 @@ ponta.
 
 ## 3. Regra de migrations (obrigatória — vem do ADR-001)
 
-- [ ] **Nunca edito uma migration que já rodou no remoto.** Qualquer mudança de
+- [x] **Nunca edito uma migration que já rodou no remoto.** Qualquer mudança de
       schema — incluindo "esqueci de proteger essa tabela" — é um arquivo
       novo, com número seguinte.
-- [ ] **RLS é ativado na mesma migration que cria a tabela**, sempre. Nunca
+- [x] **RLS é ativado na mesma migration que cria a tabela**, sempre. Nunca
       "criar tabela" numa migration e "proteger tabela" numa migration
       posterior.
-- [ ] Toda `CREATE POLICY` é precedida de `DROP POLICY IF EXISTS`, para a
+- [x] Toda `CREATE POLICY` é precedida de `DROP POLICY IF EXISTS`, para a
       migration poder ser reaplicada sem erro em outro ambiente.
-- [ ] Depois de rodar `supabase db push`, confirmar visualmente:
+- [x] Depois de rodar `supabase db push`, confirmar visualmente:
   1. No Table Editor do painel Supabase, a tabela não deve aparecer como `UNRESTRICTED`
   2. Rodar esta query no SQL Editor como segunda confirmação:
      ```sql
      select tablename, rowsecurity from pg_tables where schemaname = 'public';
      ```
      Todas as linhas devem ter `rowsecurity = true`.
-- [ ] Só depois de confirmado (passo anterior), fazer o commit da migration no Git
+- [x] Só depois de confirmado (passo anterior), fazer o commit da migration no Git
 
 ---
 
 ## 4. Schema do banco (tabelas do MVP)
 
-Estas tabelas já foram criadas e protegidas (migrations 002–010):
+Ainda faltam :
 
-```sql
-profiles        (id, discord_id, username, avatar, bio, rank, profile_complete)
-games           (id, name, slug, platform)
-player_games    (player_id, game_id, rank, style)
-availability    (player_id, weekday, period)
-swipes          (swiper_id, swiped_id, direction, created_at)
-matches         (id, player_a, player_b, created_at, invite_copied_at)
-messages        (id, match_id, sender_id, content, created_at)
-reports         (id, reporter_id, reported_id, reason, created_at)
-```
-
-Ainda faltam (para squads, sinais de sessão e reputação, usadas na Fase 4):
-
+- [ ] `profiles` (id, discord_id, username, avatar, bio, rank, profile_complete)
+- [ ] `games` (id, name, slug, platform)
+- [ ] `player_games` (player_id, game_id, rank, style)
+- [ ] `availability` (player_id, weekday, period)
+- [ ] `swipes` (swiper_id, swiped_id, direction, created_at)
+- [ ] `matches` (id, player_a, player_b, created_at, invite_copied_at)
+- [ ] `messages` (id, match_id, sender_id, content, created_at)
+- [ ] `reports` (id, reporter_id, reported_id, reason, created_at)
 - [ ] `squads` (id, creator_id, game_id, slots_total, slots_filled, min_rank, created_at)
 - [ ] `squad_members` (squad_id, player_id, joined_at)
 - [ ] `squad_requests` (squad_id, player_id, status, created_at)
@@ -104,8 +99,9 @@ Ainda faltam (para squads, sinais de sessão e reputação, usadas na Fase 4):
 - [ ] `blocks` (blocker_id, blocked_id, created_at)
 - [ ] `game_identities` (player_id, game_id, identifier)
 
-Para cada tabela nova da lista acima: criar a migration já **com RLS
-habilitado desde o início** (seção 3), não como um passo separado depois.
+Para cada tabela desta lista (as 8 do MVP e as 6 da Fase 4): criar a migration
+já **com RLS habilitado desde o início** (seção 3), não como um passo
+separado depois.
 
 ### Checklist de política de segurança (RLS) — pensar por tabela
 

@@ -1,6 +1,6 @@
 # Fase 2 — Estrutura do Projeto (pastas e arquivos)
 
-**Status: ⬜ A fazer**
+**Status: ✅ Concluída**
 
 > Voltar para o [Roadmap principal](../ROADMAP.md) · Fase anterior: [01 — Fundação: Ambiente e Ferramentas](./01-fundacao-ambiente-e-ferramentas.md)
 
