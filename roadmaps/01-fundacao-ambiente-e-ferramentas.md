@@ -1,6 +1,6 @@
 # Fase 1 — Fundação: Ambiente e Ferramentas
 
-**Status: 🟨 Em andamento**
+**Status: ✅ Concluída**
 
 > Voltar para o [Roadmap principal](../ROADMAP.md) · Fase anterior: [00 — Ideação e Planejamento](./00-ideacao-e-planejamento.md)
 
@@ -54,7 +54,7 @@ No fim dessa fase, seu computador tem **tudo instalado e configurado** para come
 ### 1.5 App Expo Go
 **O que é:** um app que você instala no seu celular, que permite testar o Squadr em desenvolvimento sem precisar compilar nada — basta escanear um QR code.
 
-- [ ] Instalar **Expo Go** na Play Store (Android) ou App Store (iPhone)
+- [x] Instalar **Expo Go** na Play Store (Android) ou App Store (iPhone)
 
 ### 1.6 Supabase CLI
 **O que é:** a ferramenta de linha de comando que aplica as migrations (mudanças no banco de dados) no projeto Supabase.
@@ -83,7 +83,7 @@ No fim dessa fase, seu computador tem **tudo instalado e configurado** para come
 - [x] Criar conta no GitHub
 - [x] Criar conta no Expo
 - [x] Criar conta no Supabase
-- [ ] Criar uma aplicação no Discord Developer Portal
+- [x] Criar uma aplicação no Discord Developer Portal
 - [x] Criar conta no PostHog
 
 > As contas de **Apple Developer Program** (pago, ~R$ 580/ano) e **Google Play Developer** (taxa única de ~R$ 130) só são necessárias na Fase 6 (Deploy). Não precisa criar agora.
@@ -92,17 +92,17 @@ No fim dessa fase, seu computador tem **tudo instalado e configurado** para come
 
 ## 3. Criando o projeto Expo
 
-- [ ] Escolher/criar a pasta onde o projeto vai viver no computador (ex:`Documentos/projetos/`)
-- [ ] Abrir o terminal nessa pasta e rodar:
+- [x] Escolher/criar a pasta onde o projeto vai viver no computador (ex:`Documentos/projetos/`)
+- [x] Abrir o terminal nessa pasta e rodar:
   ```bash
   npx create-expo-app@latest squadr --template
   ```
   Quando perguntar o template, escolher **"Blank (TypeScript)"**.
-- [ ] Entrar na pasta criada:
+- [x] Entrar na pasta criada:
   ```bash
   cd squadr
   ```
-- [ ] Testar que está tudo funcionando:
+- [x] Testar que está tudo funcionando:
   ```bash
   npx expo start
   ```
@@ -114,8 +114,8 @@ No fim dessa fase, seu computador tem **tudo instalado e configurado** para come
 
 ## 4. Conectando o projeto ao GitHub
 
-- [ ] Criar um repositório novo no GitHub (vazio, sem README) chamado `squadr`
-- [ ] Dentro da pasta do projeto:
+- [x] Criar um repositório novo no GitHub (vazio, sem README) chamado `squadr`
+- [x] Dentro da pasta do projeto:
   ```bash
   git init
   git add .
@@ -124,15 +124,15 @@ No fim dessa fase, seu computador tem **tudo instalado e configurado** para come
   git remote add origin https://github.com/SEU_USUARIO/squadr.git
   git push -u origin main
   ```
-- [ ] Confirmar que o código apareceu no GitHub, atualizando a página do repositório no navegador
+- [x] Confirmar que o código apareceu no GitHub, atualizando a página do repositório no navegador
 
 ---
 
 ## Antes de avançar
 
-- [ ] `git --version`, `node --version`, `npm --version` e `supabase --version` funcionam sem erro
-- [ ] Expo Go instalado no celular e testado com sucesso
-- [ ] Contas criadas: GitHub, Expo, Supabase, Discord Developer Portal, PostHog
-- [ ] Projeto Expo criado, rodando localmente e já no GitHub
+- [x] `git --version`, `node --version`, `npm --version` e `supabase --version` funcionam sem erro
+- [x] Expo Go instalado no celular e testado com sucesso
+- [x] Contas criadas: GitHub, Expo, Supabase, Discord Developer Portal, PostHog
+- [x] Projeto Expo criado, rodando localmente e já no GitHub
 
 ➡️ Próxima fase: [`02-estrutura-do-projeto.md`](./02-estrutura-do-projeto.md)
