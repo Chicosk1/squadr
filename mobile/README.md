@@ -31,6 +31,14 @@ mobile/
 Critério de "o que entra em cada pasta":
 [`docs/context/arquitetura.md`](../docs/context/arquitetura.md), seção 4.
 
+> ⚠️ **`composeResources/` não pode ter arquivo solto na raiz (nem `.gitkeep`).**
+> O plugin de resources do Compose Multiplatform trata cada entrada direta dessa
+> pasta como um diretório de tipo de recurso (`drawable/`, `font/`, `values/`,
+> `files/`...) e quebra o build (`generateResourceAccessorsForCommonMain`) se
+> encontrar algo que não seja uma dessas pastas. Deixe `composeResources/`
+> **inexistente** até o primeiro recurso real entrar (Bloco 8 da Fase 4) — o
+> Git não rastreia diretório vazio, então isso não perde nada.
+
 ## Três regras que mantêm o projeto multiplataforma de verdade
 
 1. **`androidApp/` e `iosApp/` são cascas finas.** Se você está escrevendo uma

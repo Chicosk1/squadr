@@ -38,7 +38,7 @@ squadr/
 │   │   └── platform/                 # infraestrutura, sem regra de negócio
 │   │       ├── config/  database/  logger/  httpserver/
 │   ├── Dockerfile
-│   ├── go.mod                        # ⬜ a gerar
+│   ├── go.mod
 │   └── README.md
 │
 ├── mobile/                           # KOTLIN MULTIPLATFORM + COMPOSE MULTIPLATFORM
@@ -54,7 +54,7 @@ squadr/
 │   │   ├── androidMain/kotlin/com/squadr/platform/   # actual (Android)
 │   │   ├── iosMain/kotlin/com/squadr/platform/       # actual (iOS)
 │   │   └── commonMain/composeResources/              # imagens, fontes, strings
-│   ├── settings.gradle.kts           # ⬜ a gerar
+│   ├── settings.gradle.kts
 │   └── README.md
 │
 ├── supabase/                         # BANCO DE DADOS
@@ -141,78 +141,96 @@ entender uma funcionalidade só.
 
 ## 3. Regra de nomenclatura (convenção do projeto)
 
-- [ ] **Go — pacotes:** nome curto, minúsculo, sem underscore (`matching`, não `Matching` nem `matching_service`)
-- [ ] **Go — arquivos:** `snake_case.go` (ex: `feed_query.go`, `jwks_cache.go`)
-- [ ] **Go — testes:** `nome_do_arquivo_test.go`, ao lado do arquivo testado
-- [ ] **Kotlin — arquivos e classes:** `PascalCase.kt` (ex: `PlayerCard.kt`, `MatchingScreen.kt`)
-- [ ] **Kotlin — funções `@Composable`:** `PascalCase` (ex: `PlayerCard()`), como manda a convenção do Compose
-- [ ] **Kotlin — pacotes:** minúsculo, sob `com.squadr`
-- [ ] **Migrations do Supabase:** `NNN_descricao_curta.sql`, número sequencial de 3 dígitos (ex: `011_create_commendations_table.sql`)
-- [ ] **ADRs:** `NNN-titulo-curto.md`, mesmo padrão de numeração
-- [ ] **Endpoints REST:** plural, kebab-case quando composto (`/players`, `/squad-requests`) — definidos em `contracts/openapi.yaml`
+- [x] **Go — pacotes:** nome curto, minúsculo, sem underscore (`matching`, não `Matching` nem `matching_service`)
+- [x] **Go — arquivos:** `snake_case.go` (ex: `feed_query.go`, `jwks_cache.go`)
+- [x] **Go — testes:** `nome_do_arquivo_test.go`, ao lado do arquivo testado
+- [x] **Kotlin — arquivos e classes:** `PascalCase.kt` (ex: `PlayerCard.kt`, `MatchingScreen.kt`)
+- [x] **Kotlin — funções `@Composable`:** `PascalCase` (ex: `PlayerCard()`), como manda a convenção do Compose
+- [x] **Kotlin — pacotes:** minúsculo, sob `com.squadr`
+- [x] **Migrations do Supabase:** `NNN_descricao_curta.sql`, número sequencial de 3 dígitos (ex: `011_create_commendations_table.sql`)
+- [x] **ADRs:** `NNN-titulo-curto.md`, mesmo padrão de numeração
+- [x] **Endpoints REST:** plural, kebab-case quando composto (`/players`, `/squad-requests`) — definidos em `contracts/openapi.yaml`
 
 ---
 
 ## 4. O que já está feito
 
-- [ ] Estrutura de pastas do monorepo criada (`backend/`, `mobile/`, `contracts/`, `.github/`)
-- [ ] `docs/` reorganizada em `context/`, `decisions/` e `roadmaps/`
-- [ ] Pastas e arquivos exclusivos do Expo removidos (`app/`, `src/`, `app.json`, `eas.json`, `package.json`, `package-lock.json`, `tsconfig.json`, `babel.config.js`)
-- [ ] `docker-compose.yml`, `backend/Dockerfile`, `.env.example` e `.gitignore` criados para a stack nova
-- [ ] `contracts/openapi.yaml` com o esqueleto da API
-- [ ] Workflow de CI do backend em `.github/workflows/`
-- [ ] `README.md` da raiz explicando como rodar o projeto
+- [x] Estrutura de pastas do monorepo criada (`backend/`, `mobile/`, `contracts/`, `.github/`)
+- [x] `docs/` reorganizada em `context/`, `decisions/` e `roadmaps/`
+- [x] Pastas e arquivos exclusivos do Expo removidos (`app/`, `src/`, `app.json`, `eas.json`, `package.json`, `package-lock.json`, `tsconfig.json`, `babel.config.js`)
+- [x] `docker-compose.yml`, `backend/Dockerfile`, `.env.example` e `.gitignore` criados para a stack nova
+- [x] `contracts/openapi.yaml` com o esqueleto da API
+- [x] Workflow de CI do backend em `.github/workflows/`
+- [x] `README.md` da raiz explicando como rodar o projeto
 
 ## 5. O que falta fazer nesta fase
 
 ### 5.1 Inicializar o módulo Go
-- [ ] Com o Go instalado (Fase 1, item 1.4), dentro de `backend/`:
+- [x] Com o Go instalado (Fase 1, item 1.4), dentro de `backend/`:
   ```bash
   go mod init github.com/Chicosk1/squadr/backend
   ```
-- [ ] Criar um `main.go` mínimo em `cmd/api/` e outro em `cmd/ws/`, só para
+- [x] Criar um `main.go` mínimo em `cmd/api/` e outro em `cmd/ws/`, só para
       confirmar que a compilação funciona:
   ```bash
   go build ./...
   ```
-- [ ] Remover os arquivos `.gitkeep` das pastas de `internal/` conforme cada uma
+- [x] Remover os arquivos `.gitkeep` das pastas de `internal/` conforme cada uma
       receber seu primeiro arquivo `.go` de verdade
-- [ ] Preencher `GO_VERSION` no `.env` com a versão instalada (usada pelo
+- [x] Preencher `GO_VERSION` no `.env` com a versão instalada (usada pelo
       `docker-compose.yml`)
 
 ### 5.2 Gerar o projeto Kotlin Multiplatform
-- [ ] Gerar o projeto pelo assistente (Android Studio → New Project → Kotlin
-      Multiplatform, ou o web wizard da JetBrains), com:
+- [x] Gerar o projeto pelo assistente (Android Studio → New Project → Kotlin
+      Multiplatform), com:
   - package/namespace: `com.squadr`
   - UI compartilhada com **Compose Multiplatform** (não UI nativa por plataforma)
   - alvos: Android e iOS
-- [ ] Gerar em uma pasta temporária e depois **encaixar** o resultado em
-      `mobile/`, preservando a estrutura da seção 1 (o assistente cria
-      `androidApp`/`iosApp`/`shared` e os arquivos Gradle — é isso que precisa
-      vir; renomeie o que ele nomear diferente)
-- [ ] Confirmar que compila:
+- [x] Gerar em uma pasta temporária (`AndroidStudioProjects/Squadr`) e depois
+      **encaixar** o resultado em `mobile/`, preservando a estrutura da seção 1.
+      O assistente já usava o package `com.squadr`, então nada precisou ser
+      renomeado — só reorganizado:
+  - Gradle wrapper e arquivos de build (`settings.gradle.kts`, `build.gradle.kts`
+    raiz, `gradle.properties`, `gradle/`, `gradlew`/`gradlew.bat`) copiados para
+    a raiz de `mobile/`
+  - `androidApp/` e `iosApp/` (cascas finas) copiados como vieram
+  - Em `shared/`, o `expect`/`actual` do `Platform` (`getPlatform()`) foi movido
+    para dentro de `platform/`, seguindo a convenção documentada ("expect/actual
+    só sob `platform/`") — o assistente tinha gerado no pacote raiz
+  - `App.kt` foi movido para `ui/App.kt` (pacote `com.squadr.ui`) e simplificado
+    para um placeholder ("Squadr" na tela), removendo o demo "Click me!" e o
+    `Greeting`/`sayHello` de exemplo — sem uso real no produto
+  - `Greeting.kt`, `GreetingUtil.kt` e o drawable de demonstração
+    (`compose-multiplatform.xml`) removidos
+  - `MainActivity.kt` e `MainViewController.kt` ajustados para importar
+    `com.squadr.ui.App`
+- [x] Confirmar que compila:
   ```bash
   cd mobile && ./gradlew :shared:build
   ```
-- [ ] Rodar o app Android no emulador, mesmo em branco
-- [ ] Remover os `.gitkeep` das pastas que receberem arquivos reais
+- [x] Rodar o app Android no emulador, mesmo em branco
+- [x] Remover os `.gitkeep` das pastas que receberam arquivos reais
+      (`androidApp/.../com/squadr/`, `iosApp/iosApp/`, `shared/.../platform/`
+      nos três source sets, `shared/.../ui/`). As pastas ainda vazias
+      (`data/`, `domain/`, `di/`, `ui/login`, `ui/matching`, `ui/chat`,
+      `ui/profile`, `ui/groups`, `ui/theme`) mantiveram o `.gitkeep`
 
-### 5.3 Escolher as bibliotecas (e registrar)
-- [ ] Decidir cliente HTTP e injeção de dependência do mobile — candidatos em
+### 5.3 Escolher as bibliotecas
+- [x] Decidir cliente HTTP e injeção de dependência do mobile — candidatos em
       [`stack.md`](../context/stack.md), seção 3
-- [ ] Decidir roteador HTTP e biblioteca de WebSocket do Go — idem
-- [ ] Registrar cada escolha em `docs/decisions/` (ADR novo), não só no código
+- [x] Decidir roteador HTTP e biblioteca de WebSocket do Go — idem
+- [x] Registrar cada escolha em `docs/decisions/` (ADR novo), não só no código
 
 ---
 
 ## Antes de avançar
 
-- [ ] Estrutura de pastas do monorepo criada e commitada no Git
-- [ ] Documentos organizados em `docs/context/`, `docs/decisions/` e `docs/roadmaps/`
-- [ ] `go build ./...` roda sem erro em `backend/`
-- [ ] `./gradlew :shared:build` roda sem erro em `mobile/`
-- [ ] App Android abre no emulador (tela em branco é suficiente)
-- [ ] Critério de "o que vai em cada pasta" (seção 2) entendido — isso evita
+- [x] Estrutura de pastas do monorepo criada e commitada no Git
+- [x] Documentos organizados em `docs/context/`, `docs/decisions/` e `docs/roadmaps/`
+- [x] `go build ./...` roda sem erro em `backend/`
+- [x] `./gradlew :shared:build` roda sem erro em `mobile/`
+- [x] App Android abre no emulador (tela em branco é suficiente)
+- [x] Critério de "o que vai em cada pasta" (seção 2) entendido — isso evita
       decisões diferentes por quem trabalhar no projeto depois
 
 ➡️ Próxima fase: [`03-backend-banco-e-autenticacao.md`](./03-backend-banco-e-autenticacao.md)
