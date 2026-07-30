@@ -36,82 +36,72 @@ contas nos serviços que o projeto usa.
 > Verificação feita em 29/07/2026 nesta máquina de desenvolvimento. Em outra
 > máquina, confira tudo de novo.
 
-### 1.1 Git — ✅ já instalado
+### 1.1 Git
 **O que é:** o programa que guarda o histórico de todas as versões do código.
 
-- [ ] Instalado e funcionando (`git --version`)
+- [x] Instalado e funcionando (`git --version`)
 
-### 1.2 JDK (Java Development Kit) — ✅ já instalado
+### 1.2 JDK (Java Development Kit)
 **O que é:** o kit que compila e roda código Kotlin/Java. O Gradle (ferramenta de
 build do projeto mobile) precisa dele.
 
-- [ ] JDK instalado — detectado **Java 25 LTS** (`java -version`)
-- [ ] ⚠️ Se o Gradle reclamar de versão de JDK não suportada, instale também um
+- [x] JDK instalado (`java -version`)
+- [x] ⚠️ Se o Gradle reclamar de versão de JDK não suportada, instale também um
       JDK LTS anterior (ex: 21) e aponte o projeto para ele em **Android Studio →
-      Settings → Build Tools → Gradle → Gradle JDK**. Gradle costuma demorar
-      alguns meses para suportar um JDK recém-lançado — é o erro mais comum de
-      quem começa um projeto Kotlin com o JDK mais novo possível
+      Settings → Build Tools → Gradle → Gradle JDK**.
 
-### 1.3 Android Studio — ✅ já instalado
+### 1.3 Android Studio
 **O que é:** o ambiente de desenvolvimento principal do projeto. É nele que a UI
 compartilhada em Compose Multiplatform é escrita, e é ele que roda o app no
 emulador Android.
 
-- [ ] Android Studio instalado (`C:\Program Files\Android\Android Studio`)
-- [ ] Android SDK presente (`%LOCALAPPDATA%\Android\Sdk`)
-- [ ] Instalar o plugin **Kotlin Multiplatform** (Settings → Plugins → buscar
+- [x] Android Studio instalado (`C:\Program Files\Android\Android Studio`)
+- [x] Android SDK presente (`%LOCALAPPDATA%\Android\Sdk`)
+- [x] Instalar o plugin **Kotlin Multiplatform** (Settings → Plugins → buscar
       "Kotlin Multiplatform" → Install → reiniciar)
-- [ ] Criar um emulador Android (Device Manager → Create Device) — o app precisa
+- [x] Criar um emulador Android (Device Manager → Create Device) — o app precisa
       de algum lugar para rodar
-- [ ] Confirmar que o emulador abre e roda
+- [x] Confirmar que o emulador abre e roda
 
-### 1.4 Go — ⬜ **falta instalar**
+### 1.4 Go
 **O que é:** a linguagem do backend. Compila os dois serviços (`cmd/api` e
 `cmd/ws`) em binários únicos.
 
-- [ ] Baixar a versão estável mais recente em: https://go.dev/dl/
-- [ ] Instalar com as opções padrão
-- [ ] **Fechar e reabrir o terminal** (o instalador altera o `PATH`)
-- [ ] Confirmar:
-  ```bash
-  go version
-  ```
-- [ ] Anotar a versão que apareceu — ela vai ser usada no `go.mod` (Fase 2) e na
+- [x] Baixar a versão estável mais recente em: https://go.dev/dl/
+- [x] Instalar com as opções padrão
+- [x] **Fechar e reabrir o terminal** (o instalador altera o `PATH`)
+- [x] Confirmar (`go version`)
+- [x] Anotar a versão que apareceu — ela vai ser usada no `go.mod` (Fase 2) e na
       variável `GO_VERSION` do `.env`
 
-### 1.5 Editor para o backend Go (opcional, mas recomendado)
+### 1.5 Editor para o backend Go
 **O que é:** o Android Studio é ótimo para Kotlin, mas não para Go. Vale ter um
 editor separado para a pasta `backend/`.
 
-- [ ] **VS Code** (https://code.visualstudio.com) + extensão oficial **Go**
-      (publisher: Go Team at Google) — ela instala sozinha as ferramentas de
-      formatação e análise quando você abre o primeiro arquivo `.go`
-- [ ] Alternativa: **GoLand** (pago, da mesma fabricante do Android Studio)
+- [x] **VS Code** (https://code.visualstudio.com) + extensão oficial **Go**
+      (publisher: Go Team at Google)
 
-### 1.6 Docker Desktop — ✅ já instalado
+### 1.6 Docker Desktop
 **O que é:** roda os serviços em contêiner. Usado pelo `docker-compose.yml` (sobe
 `api` e `ws` localmente) e pelo Supabase CLI (que sobe o Postgres local).
 
-- [ ] Instalado — detectado **Docker 29.4.3** (`docker --version`)
-- [ ] Confirmar que o Docker Desktop está **rodando** antes de usar (o comando
+- [x] Instalado — detectado **Docker 29.4.3** (`docker --version`)
+- [x] Confirmar que o Docker Desktop está **rodando** antes de usar (o comando
       funciona, mas falha se o serviço estiver parado)
 
-### 1.7 Supabase CLI — ✅ já instalado
+### 1.7 Supabase CLI
 **O que é:** aplica as migrations (mudanças no banco) e sobe uma cópia local do
 Supabase para desenvolvimento.
 
-- [ ] Instalado — detectado **2.109.1** (`supabase --version`)
+- [x] Instalado (`supabase --version`)
 
-### 1.8 flyctl (CLI do Fly.io) — ⬜ **falta instalar**
+### 1.8 flyctl (CLI do Fly.io)
 **O que é:** a ferramenta que faz o deploy do backend no Fly.io.
 
-- [ ] Instalar seguindo https://fly.io/docs/flyctl/install/
-- [ ] Confirmar:
-  ```bash
-  flyctl version
-  ```
+- [x] Instalar seguindo https://fly.io/docs/flyctl/install/
+- [x] Confirmar (`flyctl version`)
 
-### 1.9 Xcode — só em macOS (condicional)
+### 1.9 Xcode — só em macOS
 **O que é:** necessário para compilar, rodar no simulador e assinar o app iOS.
 
 - [ ] **Se você tem um Mac:** instalar o Xcode pela App Store e rodar
@@ -126,25 +116,25 @@ Supabase para desenvolvimento.
 
 ## 2. Contas a criar
 
-| Conta | Para quê serve | Link | Situação |
+| Conta | Para quê serve | Link |
 |---|---|---|---|
-| **GitHub** | Guardar o código e rodar o CI do backend | https://github.com/signup | ✅ criada |
-| **Supabase** | Postgres gerenciado + Storage + Auth | https://supabase.com/dashboard | ✅ criada |
-| **Discord Developer Portal** | Aplicação OAuth do "Entrar com Discord" | https://discord.com/developers/applications | ✅ criada |
-| **PostHog** | Analytics de app e de servidor | https://posthog.com/signup | ✅ criada |
-| **Firebase** | Push notifications (FCM) | https://console.firebase.google.com | ⬜ falta |
-| **Codemagic** | Build, assinatura e publicação do app | https://codemagic.io/signup | ⬜ falta |
-| **Fly.io** | Hospedagem do backend Go | https://fly.io/app/sign-up | ⬜ falta |
+| **GitHub** | Guardar o código e rodar o CI do backend | https://github.com/signup |
+| **Supabase** | Postgres gerenciado + Storage + Auth | https://supabase.com/dashboard |
+| **Discord Developer Portal** | Aplicação OAuth do "Entrar com Discord" | https://discord.com/developers/applications |
+| **PostHog** | Analytics de app e de servidor | https://posthog.com/signup |
+| **Firebase** | Push notifications (FCM) | https://console.firebase.google.com |
+| **Codemagic** | Build, assinatura e publicação do app | https://codemagic.io/signup |
+| **Fly.io** | Hospedagem do backend Go | https://fly.io/app/sign-up |
 
-- [ ] Criar conta no GitHub
-- [ ] Criar conta no Supabase
-- [ ] Criar uma aplicação no Discord Developer Portal
-- [ ] Criar conta no PostHog
-- [ ] Criar projeto no **Firebase** e adicionar os dois apps (Android e iOS) — os
+- [x] Criar conta no GitHub
+- [x] Criar conta no Supabase
+- [x] Criar uma aplicação no Discord Developer Portal
+- [x] Criar conta no PostHog
+- [x] Criar projeto no **Firebase** e adicionar os dois apps (Android e iOS) — os
       arquivos `google-services.json` e `GoogleService-Info.plist` saem daqui, e
       a **service account** que o backend usa também
-- [ ] Criar conta no **Codemagic** e conectar ao repositório do GitHub
-- [ ] Criar conta no **Fly.io** — ⚠️ **exige cartão de crédito**: não há free
+- [x] Criar conta no **Codemagic** e conectar ao repositório do GitHub
+- [x] Criar conta no **Fly.io** — ⚠️ **exige cartão de crédito**: não há free
       tier para contas novas. O custo estimado é de ~US$ 4–7/mês para os dois
       serviços. Ver [`stack.md`](../context/stack.md), seção 4
 
@@ -159,28 +149,28 @@ Supabase para desenvolvimento.
 Não crie os projetos aqui — isso é a Fase 2. Aqui só confirmamos que as
 ferramentas respondem:
 
-- [ ] `go version` retorna uma versão
-- [ ] `docker ps` roda sem erro (com o Docker Desktop aberto)
-- [ ] `supabase --version` retorna uma versão
-- [ ] `flyctl version` retorna uma versão
-- [ ] Android Studio abre, reconhece o SDK e o emulador liga
+- [x] `go version` retorna uma versão
+- [x] `docker ps` roda sem erro (com o Docker Desktop aberto)
+- [x] `supabase --version` retorna uma versão
+- [x] `flyctl version` retorna uma versão
+- [x] Android Studio abre, reconhece o SDK e o emulador liga
 
 ---
 
-## 4. Repositório no GitHub — ✅ já feito
+## 4. Repositório no GitHub
 
-- [ ] Repositório `squadr` criado em https://github.com/Chicosk1/squadr
-- [ ] Projeto local vinculado ao remoto (`git remote -v`)
+- [x] Repositório `squadr` criado em https://github.com/Chicosk1/squadr
+- [x] Projeto local vinculado ao remoto (`git remote -v`)
 
 ---
 
 ## Antes de avançar
 
-- [ ] Git, JDK, Android Studio, Docker e Supabase CLI instalados e respondendo
-- [ ] Go instalado, com a versão anotada
-- [ ] flyctl instalado
-- [ ] Plugin Kotlin Multiplatform instalado no Android Studio, com emulador criado
-- [ ] Contas criadas: Firebase (com projeto e os dois apps), Codemagic e Fly.io
-- [ ] Ciente da restrição de iOS sem macOS (item 1.9) e do custo mensal do Fly.io
+- [x] Git, JDK, Android Studio, Docker e Supabase CLI instalados e respondendo
+- [x] Go instalado, com a versão anotada
+- [x] flyctl instalado
+- [x] Plugin Kotlin Multiplatform instalado no Android Studio, com emulador criado
+- [x] Contas criadas: Firebase (com projeto e os dois apps), Codemagic e Fly.io
+- [x] Ciente da restrição de iOS sem macOS (item 1.9) e do custo mensal do Fly.io
 
 ➡️ Próxima fase: [`02-estrutura-do-projeto.md`](./02-estrutura-do-projeto.md)
