@@ -1,41 +1,73 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ============ variáveis de ambiente e segredos ============
+.env
+.env.*
+!.env.example
+secrets/
 
-# dependencies
-node_modules/
+# credenciais do Firebase — não commitar (ver roadmap Fase 6)
+google-services.json
+GoogleService-Info.plist
+firebase-service-account*.json
+*-service-account*.json
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# ============ Go (backend) ============
+backend/bin/
+backend/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+go.work
+go.work.sum
 
-# Native
+# ============ Gradle / Kotlin (mobile) ============
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+local.properties
 .kotlin/
-*.orig.*
+kotlin-js-store/
+captures/
+*.hprof
+
+# ============ Android ============
+*.apk
+*.aab
+*.ap_
+*.dex
 *.jks
-*.p8
-*.p12
-*.key
+*.keystore
+release/
+.cxx/
+
+# ============ iOS / Xcode ============
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+Pods/
 *.mobileprovision
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
 
-# Metro
-.metro-health-check*
+# ============ Supabase ============
+supabase/.temp/
+supabase/.branches/
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# ============ IDE / editores ============
+.idea/
+*.iml
+.vscode/
+*.swp
 
-# macOS
+# ============ sistema operacional ============
 .DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+Thumbs.db
+desktop.ini

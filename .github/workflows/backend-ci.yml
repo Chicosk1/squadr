@@ -1,0 +1,82 @@
+name: backend-ci
+
+# CI do backend Go: formatação, análise estática, testes e build.
+#
+# Nota: enquanto `backend/go.mod` não existir (é criado na Fase 2 do roadmap, com
+# `go mod init`), o job passa direto em vez de falhar — para não deixar todo PR
+# vermelho antes de o módulo existir.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "contracts/**"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: lint, test e build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar se o módulo Go já existe
+        id: guard
+        run: |
+          if [ -f go.mod ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/go.mod ainda não existe (Fase 2 do roadmap). Pulando lint/test/build."
+          fi
+
+      - name: Setup Go
+        if: steps.guard.outputs.ready == 'true'
+        uses: actions/setup-go@v5
+        with:
+          # A versão vem do go.mod — uma fonte de verdade só.
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Conferir formatação (gofmt)
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          nao_formatados=$(gofmt -l .)
+          if [ -n "$nao_formatados" ]; then
+            echo "Arquivos fora do padrão gofmt:"
+            echo "$nao_formatados"
+            echo "Rode: gofmt -w ."
+            exit 1
+          fi
+
+      - name: Análise estática (go vet)
+        if: steps.guard.outputs.ready == 'true'
+        run: go vet ./...
+
+      - name: Testes
+        if: steps.guard.outputs.ready == 'true'
+        run: go test -race -count=1 ./...
+
+      - name: Build dos dois serviços
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          go build ./cmd/api
+          go build ./cmd/ws
