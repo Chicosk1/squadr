@@ -1,0 +1,45 @@
+# Sobe os dois serviços Go do backend localmente.
+#
+# O Postgres NÃO está aqui: use `supabase start` (Supabase CLI), que sobe a stack
+# local do Supabase — assim o banco de desenvolvimento é o mesmo produto usado em
+# produção, com as mesmas migrations.
+#
+# Pré-requisitos:
+#   1. `cp .env.example .env` e preencher (inclusive GO_VERSION)
+#   2. `supabase start`
+#   3. `go mod init` já feito em backend/ (Fase 2 do roadmap)
+
+services:
+  api:
+    build:
+      context: ./backend
+      target: api
+      args:
+        GO_VERSION: ${GO_VERSION}
+    ports:
+      - "${API_PORT:-8080}:${API_PORT:-8080}"
+    env_file:
+      - .env
+    # Permite que o contêiner alcance o Postgres do `supabase start`, que roda
+    # fora desta compose. Use host.docker.internal na DATABASE_URL.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  ws:
+    build:
+      context: ./backend
+      target: ws
+      args:
+        GO_VERSION: ${GO_VERSION}
+    ports:
+      - "${WS_PORT:-8081}:${WS_PORT:-8081}"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    # Uma única réplica, de propósito: o hub de conexões é em memória.
+    # Ver docs/context/arquitetura.md, seção 5.3.
+    deploy:
+      replicas: 1

@@ -1,7 +1,31 @@
 # ADR-001: Processo de migrations e RLS no Supabase
 
-**Status:** Aceito
+**Status:** Aceito — **válido**, com emenda
 **Data:** 30/06/2026
+**Emendado por:** [ADR-003](./003-migracao-kmp-e-backend-go.md) em 29/07/2026
+
+> ### ℹ️ Emenda de 29/07/2026 (migração de stack)
+>
+> Este ADR **não foi supersedido** — é a única decisão anterior à troca de stack
+> que segue integralmente em vigor. Todas as regras de migration abaixo continuam
+> obrigatórias: arquivo aplicado não se edita, RLS na mesma migration que cria a
+> tabela, `DROP POLICY IF EXISTS` antes de `CREATE POLICY`, confirmação em
+> `pg_tables` antes do commit. O Supabase continua sendo o Postgres do projeto e
+> o Supabase CLI continua sendo a ferramenta de migration.
+>
+> O que mudou é o **peso do RLS**. Quando este ADR foi escrito, o app falava
+> direto com o banco e o RLS *era* o mecanismo de autorização do produto. Com o
+> backend Go no meio ([ADR-003](./003-migracao-kmp-e-backend-go.md)), a
+> autorização passa a ser feita pelo Go, que valida o JWT do Supabase e aplica a
+> regra antes de qualquer query. O RLS passa a ser defesa em profundidade e
+> proteção de acessos que não passam pelo Go (incluindo o Storage).
+>
+> ⚠️ **Decisão pendente que nasce dessa emenda:** com qual papel do Postgres o Go
+> conecta, e se o RLS é mantido ativo com propagação das claims do JWT ou tratado
+> apenas como proteção do Storage. Precisa ser resolvida **antes** de criar as
+> tabelas (Fase 3) e virar ADR própria — decidir por omissão aqui repetiria
+> exatamente o tipo de descuido que originou este ADR. Ver
+> [`docs/context/banco-de-dados.md`](../context/banco-de-dados.md), seção 3.
 
 ## Contexto
 

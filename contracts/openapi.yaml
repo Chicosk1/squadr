@@ -1,0 +1,697 @@
+openapi: 3.1.0
+
+info:
+  title: Squadr API
+  version: 0.1.0-draft
+  summary: API REST do Squadr — app de matchmaking para gamers brasileiros.
+  description: |
+    Fonte única de verdade da API. Alterar aqui **antes** de mexer no Go ou no Kotlin.
+
+    **Estado: esqueleto.** Rotas e schemas principais desenhados; detalhes
+    (campos exatos, paginação, códigos por rota) são fechados na Fase 3 do
+    roadmap. Ver `docs/roadmaps/03-backend-banco-e-autenticacao.md`, seção 6.
+
+    Autenticação: JWT emitido pelo **Supabase Auth** (Discord OAuth) e validado
+    pelo backend Go contra o JWKS do Supabase. O backend não emite tokens.
+
+    O **chat em tempo real não está aqui** — ele roda no serviço WebSocket
+    (`cmd/ws`), que OpenAPI não descreve. O protocolo das mensagens do WebSocket
+    precisa ser documentado à parte (pendência da Fase 3). O histórico de
+    mensagens, por ser REST, está neste contrato.
+  license:
+    name: Ver LICENSE no repositório
+
+servers:
+  - url: http://localhost:8080
+    description: desenvolvimento local
+  - url: https://squadr-api.fly.dev
+    description: produção (Fly.io) — URL a confirmar no primeiro deploy
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: health
+  - name: auth
+  - name: user
+    description: perfil, status, device tokens
+  - name: matching
+    description: feed, swipes e matches
+  - name: chat
+    description: histórico de mensagens (o tempo real é no serviço WebSocket)
+  - name: group
+    description: squads / lobby aberto
+  - name: moderation
+    description: report, bloqueio e elogios
+
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      summary: Saúde do serviço (inclui checagem do banco)
+      security: []
+      responses:
+        "200":
+          description: serviço saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+                  database: { type: string, examples: [ok] }
+        "503":
+          description: serviço degradado
+
+  /auth/session:
+    post:
+      tags: [auth]
+      summary: Primeiro login — cria o perfil a partir das claims do JWT
+      description: |
+        Idempotente: se o perfil já existe, apenas o retorna. Na fase de
+        crescimento por convite, exige um código válido (ver
+        `docs/context/produto.md`, seção 8.1).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inviteCode: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/ProfileResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: convite ausente, inválido ou já utilizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /me:
+    get:
+      tags: [user]
+      summary: Perfil do usuário autenticado
+      responses:
+        "200": { $ref: "#/components/responses/ProfileResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [user]
+      summary: Atualiza o próprio perfil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileUpdate" }
+      responses:
+        "200": { $ref: "#/components/responses/ProfileResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /me/games:
+    put:
+      tags: [user]
+      summary: Substitui a lista de jogos do jogador (com rank e estilo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/PlayerGame" }
+      responses:
+        "200": { $ref: "#/components/responses/ProfileResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /me/status:
+    patch:
+      tags: [user]
+      summary: Atualiza o status de presença
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/PresenceStatus" }
+      responses:
+        "204": { description: atualizado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /me/device-tokens:
+    post:
+      tags: [user]
+      summary: Registra o token FCM do dispositivo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, platform]
+              properties:
+                token: { type: string }
+                platform: { type: string, enum: [android, ios] }
+      responses:
+        "204": { description: registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /players/{playerId}:
+    get:
+      tags: [user]
+      summary: Perfil público de outro jogador
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: perfil público
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /feed:
+    get:
+      tags: [matching]
+      summary: Feed de discovery
+      description: |
+        Filtra por jogo em comum, compatibilidade de rank e horário. Exclui o
+        próprio usuário, quem já recebeu swipe e qualquer relação de bloqueio.
+        Perfil completo tem visibilidade maior; perfil incompleto nunca é
+        excluído.
+      parameters:
+        - name: gameId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: página do feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/PlayerSummary" }
+                  nextCursor: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /swipes:
+    post:
+      tags: [matching]
+      summary: Registra like ou pular
+      description: Se houver like mútuo, cria o match na mesma transação.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [swipedId, direction]
+              properties:
+                swipedId: { type: string, format: uuid }
+                direction: { type: string, enum: [like, pass] }
+      responses:
+        "201":
+          description: swipe registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matched: { type: boolean }
+                  match:
+                    oneOf:
+                      - { $ref: "#/components/schemas/Match" }
+                      - { type: "null" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: swipe já registrado para esse jogador
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /matches:
+    get:
+      tags: [matching]
+      summary: Matches do usuário autenticado
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: lista de matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Match" }
+                  nextCursor: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /matches/{matchId}/messages:
+    get:
+      tags: [chat]
+      summary: Histórico de mensagens do match
+      description: Só os dois participantes do match podem ler.
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: página de mensagens, mais recentes primeiro
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Message" }
+                  nextCursor: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /matches/{matchId}/invite-copied:
+    post:
+      tags: [matching]
+      summary: Marca que o convite para o jogo foi copiado
+      description: |
+        Grava `invite_copied_at`. É o sinal de sessão mais forte do sistema de
+        confiança (`docs/context/produto.md`, seção 8.2).
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "204": { description: registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /squads:
+    get:
+      tags: [group]
+      summary: Lista squads abertos
+      parameters:
+        - name: gameId
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: página de squads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Squad" }
+                  nextCursor: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [group]
+      summary: Cria um squad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SquadCreate" }
+      responses:
+        "201":
+          description: squad criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Squad" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /squads/{squadId}:
+    get:
+      tags: [group]
+      summary: Detalhe do squad, com membros e vagas restantes
+      parameters:
+        - $ref: "#/components/parameters/SquadId"
+      responses:
+        "200":
+          description: detalhe do squad
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Squad" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /squads/{squadId}/requests:
+    get:
+      tags: [group]
+      summary: Pedidos de entrada (só o criador do squad)
+      parameters:
+        - $ref: "#/components/parameters/SquadId"
+      responses:
+        "200":
+          description: pedidos pendentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SquadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [group]
+      summary: Pede para entrar no squad
+      parameters:
+        - $ref: "#/components/parameters/SquadId"
+      responses:
+        "201":
+          description: pedido criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SquadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: squad lotado ou pedido já existente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /squad-requests/{requestId}/accept:
+    post:
+      tags: [group]
+      summary: Aprova um pedido de entrada
+      description: |
+        Só o criador do squad. Adiciona o membro e incrementa `slots_filled` na
+        mesma transação; falha com 409 se a última vaga já foi ocupada.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: pedido aprovado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Squad" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: squad lotado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /commendations:
+    post:
+      tags: [moderation]
+      summary: Elogia outro jogador
+      description: Limite diário aplicado no servidor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toId, tag]
+              properties:
+                toId: { type: string, format: uuid }
+                matchId: { type: string, format: uuid }
+                tag: { $ref: "#/components/schemas/CommendationTag" }
+      responses:
+        "201": { description: elogio registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429":
+          description: limite diário de elogios atingido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /reports:
+    post:
+      tags: [moderation]
+      summary: Reporta um usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportedId, reason]
+              properties:
+                reportedId: { type: string, format: uuid }
+                reason: { type: string, maxLength: 500 }
+      responses:
+        "201": { description: report registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /blocks:
+    post:
+      tags: [moderation]
+      summary: Bloqueia um usuário
+      description: |
+        O bloqueio vale nas duas direções para leitura: o bloqueado desaparece do
+        feed, dos squads e não consegue mais entregar mensagem.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [blockedId]
+              properties:
+                blockedId: { type: string, format: uuid }
+      responses:
+        "201": { description: bloqueio registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT emitido pelo Supabase Auth, validado pelo backend via JWKS.
+
+  parameters:
+    PlayerId:
+      name: playerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SquadId:
+      name: squadId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      description: cursor de paginação devolvido em `nextCursor`
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+
+  responses:
+    ProfileResponse:
+      description: perfil do usuário autenticado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Profile" }
+    Unauthorized:
+      description: token ausente, inválido ou expirado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: autenticado, mas sem direito sobre o recurso
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: recurso inexistente
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: corpo da requisição inválido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      description: Formato único de erro para toda a API.
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: identificador estável do erro, para o app tratar
+          examples: [invalid_invite, squad_full, commendation_limit_reached]
+        message:
+          type: string
+          description: mensagem em PT-BR, exibível ao usuário
+        details:
+          type: object
+          additionalProperties: true
+
+    PresenceStatus:
+      type: string
+      enum: [available, playing, offline]
+
+    PlayStyle:
+      type: string
+      enum: [casual, competitive]
+
+    Weekday:
+      type: string
+      enum: [mon, tue, wed, thu, fri, sat, sun]
+
+    Period:
+      type: string
+      enum: [morning, afternoon, night]
+
+    CommendationTag:
+      type: string
+      enum: [good_communicator, showed_up_on_time, would_play_again]
+
+    Game:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        platform: { type: string }
+
+    PlayerGame:
+      type: object
+      required: [gameId]
+      properties:
+        gameId: { type: string, format: uuid }
+        rank: { type: string }
+        style: { $ref: "#/components/schemas/PlayStyle" }
+
+    Availability:
+      type: object
+      required: [weekday, period]
+      properties:
+        weekday: { $ref: "#/components/schemas/Weekday" }
+        period: { $ref: "#/components/schemas/Period" }
+
+    Profile:
+      type: object
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        username: { type: string, readOnly: true }
+        avatarUrl: { type: [string, "null"], readOnly: true }
+        bio: { type: [string, "null"] }
+        games:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerGame" }
+        availability:
+          type: array
+          items: { $ref: "#/components/schemas/Availability" }
+        status: { $ref: "#/components/schemas/PresenceStatus" }
+        profileComplete:
+          type: boolean
+          readOnly: true
+          description: calculado no servidor
+        verifiedCommunity:
+          type: boolean
+          readOnly: true
+          description: selo de vínculo com comunidade Discord (escopo `guilds`)
+        createdAt: { type: string, format: date-time, readOnly: true }
+
+    ProfileUpdate:
+      type: object
+      properties:
+        bio: { type: string, maxLength: 280 }
+        availability:
+          type: array
+          items: { $ref: "#/components/schemas/Availability" }
+
+    PlayerSummary:
+      type: object
+      description: Versão pública e enxuta do perfil, usada no feed.
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        avatarUrl: { type: [string, "null"] }
+        bio: { type: [string, "null"] }
+        games:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerGame" }
+        status: { $ref: "#/components/schemas/PresenceStatus" }
+        verifiedCommunity: { type: boolean }
+        commendationCount: { type: integer }
+
+    Match:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        player: { $ref: "#/components/schemas/PlayerSummary" }
+        createdAt: { type: string, format: date-time }
+        inviteCopiedAt: { type: [string, "null"], format: date-time }
+        lastMessagePreview: { type: [string, "null"] }
+
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        senderId: { type: string, format: uuid }
+        content: { type: string, maxLength: 2000 }
+        createdAt: { type: string, format: date-time }
+
+    SquadCreate:
+      type: object
+      required: [gameId, slotsTotal]
+      properties:
+        gameId: { type: string, format: uuid }
+        slotsTotal: { type: integer, minimum: 2, maximum: 10 }
+        minRank: { type: string }
+        role: { type: string }
+        scheduledFor: { type: string, format: date-time }
+
+    Squad:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        game: { $ref: "#/components/schemas/Game" }
+        creator: { $ref: "#/components/schemas/PlayerSummary" }
+        slotsTotal: { type: integer }
+        slotsFilled: { type: integer, readOnly: true }
+        minRank: { type: [string, "null"] }
+        role: { type: [string, "null"] }
+        scheduledFor: { type: [string, "null"], format: date-time }
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerSummary" }
+        createdAt: { type: string, format: date-time, readOnly: true }
+
+    SquadRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        squadId: { type: string, format: uuid }
+        player: { $ref: "#/components/schemas/PlayerSummary" }
+        status: { type: string, enum: [pending, accepted, rejected] }
+        createdAt: { type: string, format: date-time }
