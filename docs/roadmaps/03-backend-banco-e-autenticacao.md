@@ -27,7 +27,7 @@ API definido, e o login "Entrar com Discord" funcionando de ponta a ponta — co
 
 ---
 
-## 1. Projeto no Supabase — ✅ já feito
+## 1. Projeto no Supabase
 
 - [ ] Acessar https://supabase.com/dashboard e criar um novo projeto
 - [ ] Escolher uma região próxima do Brasil (ex: São Paulo)
@@ -42,7 +42,7 @@ API definido, e o login "Entrar com Discord" funcionando de ponta a ponta — co
 
 ---
 
-## 2. Supabase CLI vinculado ao projeto remoto — ✅ já feito
+## 2. Supabase CLI vinculado ao projeto remoto
 
 - [ ] `supabase login`
 - [ ] `supabase link --project-ref SEU_PROJECT_REF`
@@ -55,7 +55,7 @@ API definido, e o login "Entrar com Discord" funcionando de ponta a ponta — co
 
 ---
 
-## 3. Regra de migrations (obrigatória — vem do ADR-001)
+## 3. Regra de migrations
 
 - [ ] **Nunca edito uma migration que já rodou no remoto.** Qualquer mudança de
       schema — incluindo "esqueci de proteger essa tabela" — é um arquivo novo,
@@ -150,7 +150,7 @@ servidor divergem e o erro só aparece no dispositivo do usuário.
       `guilds` é o que permite, com consentimento do usuário, mostrar o selo de
       vínculo com comunidade — parte do sistema de confiança do produto)
 
-### 7.2 No backend Go (novo)
+### 7.2 No backend Go
 - [ ] Implementar `internal/auth`:
   - [ ] buscar o **JWKS** do Supabase (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`)
   - [ ] manter em **cache**, com renovação — mas sem refazer a busca a cada
@@ -185,7 +185,7 @@ servidor divergem e o erro só aparece no dispositivo do usuário.
 
 ---
 
-## 8. Schema do banco (tabelas do MVP)
+## 8. Schema do banco
 
 Para cada tabela: criar a migration já **com RLS habilitado desde o início**
 (seção 3) e conforme a decisão da seção 4 — nunca como um passo separado depois.
@@ -207,7 +207,7 @@ Para cada tabela: criar a migration já **com RLS habilitado desde o início**
 - [ ] `device_tokens` (player_id, token, platform, updated_at) — **nova**, exigida pelo FCM
 - [ ] `invites` (code, created_by, used_by, created_at, used_at)
 
-### Checklist de autorização — pensar por tabela
+### Checklist de autorização
 
 Antes, essas perguntas eram respondidas por políticas RLS. Agora elas são
 respondidas **no Go** (e, se a seção 4 decidir manter RLS, nos dois lugares).
@@ -221,7 +221,7 @@ Registre a resposta junto ao código do domínio, não só na cabeça:
 
 ---
 
-## 9. Estratégia de crescimento por convite (fase inicial)
+## 9. Estratégia de crescimento por convite
 
 Conforme decidido no documento de produto ([`produto.md`](../context/produto.md),
 seção 8.1), o cadastro no lançamento **não é aberto** — só entra quem foi
