@@ -79,7 +79,7 @@ estratégia definida em [`produto.md`](../context/produto.md) (mitigação do
       de distribuição e provisioning profile (o Codemagic consegue gerenciar isso
       automaticamente com a chave da API)
 - [ ] Definir as variáveis de ambiente do app no Codemagic: URL da API e do
-      WebSocket (as do passo 2), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, chave do
+      WebSocket (as do passo 2), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, chave do
       PostHog
 - [ ] Adicionar `google-services.json` e `GoogleService-Info.plist` como arquivos
       seguros no Codemagic (não commitados no repositório)

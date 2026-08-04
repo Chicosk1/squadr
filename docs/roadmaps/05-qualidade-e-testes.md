@@ -112,7 +112,7 @@ Com a autorização em Go, cada endpoint precisa ser testado com **três atores*
 - [ ] Confirmar que só o criador aprova pedido de squad
 - [ ] Confirmar que campos que o usuário não deveria alterar (`created_at`, `slots_filled`, `profile_complete`) são ignorados quando enviados no corpo
 - [ ] Testar o handshake do WebSocket com token de outro usuário tentando abrir conversa alheia
-- [ ] **Teste do "jeito errado" da Fase 3, seção 4:** com a `anon key` do app, tentar ler tabelas direto pela Data API do Supabase. Deve falhar
+- [ ] **Teste do "jeito errado" da Fase 3, seção 4:** com a `publishable key` do app, tentar ler tabelas direto pela Data API do Supabase. Deve falhar
 
 ---
 

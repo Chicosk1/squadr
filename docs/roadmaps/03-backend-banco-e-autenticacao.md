@@ -29,24 +29,24 @@ API definido, e o login "Entrar com Discord" funcionando de ponta a ponta — co
 
 ## 1. Projeto no Supabase
 
-- [ ] Acessar https://supabase.com/dashboard e criar um novo projeto
-- [ ] Escolher uma região próxima do Brasil (ex: São Paulo)
-- [ ] Guardar a senha do banco gerada
-- [ ] No painel do projeto, ir em **Project Settings → API** e copiar `Project URL` e `anon public key`
-- [ ] ⚠️ **Refazer o `.env` com os nomes novos das variáveis.** As variáveis
+- [x] Acessar https://supabase.com/dashboard e criar um novo projeto
+- [x] Escolher uma região próxima do Brasil (ex: São Paulo)
+- [x] Guardar a senha do banco gerada
+- [x] No painel do projeto, ir em **Project Settings → API** e copiar `Project URL` e `Publishable key`
+- [x] ⚠️ **Refazer o `.env` com os nomes novos das variáveis.** As variáveis
       antigas tinham prefixo `EXPO_PUBLIC_`, que não existe mais. Ver
       [`.env.example`](../../.env.example) para a lista atual (`DATABASE_URL`,
       `SUPABASE_URL`, `SUPABASE_JWKS_URL`, etc.)
-- [ ] Copiar também a **connection string** do banco (Project Settings →
+- [x] Copiar também a **connection string** do banco (Project Settings →
       Database) — é o que o Go usa, e ela **nunca** vai para o app
 
 ---
 
 ## 2. Supabase CLI vinculado ao projeto remoto
 
-- [ ] `supabase login`
-- [ ] `supabase link --project-ref SEU_PROJECT_REF`
-- [ ] Confirmar quais migrations já foram aplicadas **antes de criar qualquer migration nova**:
+- [x] `supabase login`
+- [x] `supabase link --project-ref SEU_PROJECT_REF`
+- [x] Confirmar quais migrations já foram aplicadas **antes de criar qualquer migration nova**:
   ```bash
   supabase migration list
   ```
@@ -57,20 +57,20 @@ API definido, e o login "Entrar com Discord" funcionando de ponta a ponta — co
 
 ## 3. Regra de migrations
 
-- [ ] **Nunca edito uma migration que já rodou no remoto.** Qualquer mudança de
+- [x] **Nunca edito uma migration que já rodou no remoto.** Qualquer mudança de
       schema — incluindo "esqueci de proteger essa tabela" — é um arquivo novo,
       com número seguinte.
-- [ ] **RLS é ativado na mesma migration que cria a tabela**, sempre.
-- [ ] Toda `CREATE POLICY` é precedida de `DROP POLICY IF EXISTS`, para a
+- [x] **RLS é ativado na mesma migration que cria a tabela**, sempre.
+- [x] Toda `CREATE POLICY` é precedida de `DROP POLICY IF EXISTS`, para a
       migration poder ser reaplicada sem erro em outro ambiente.
-- [ ] Depois de rodar `supabase db push`, confirmar visualmente:
+- [x] Depois de rodar `supabase db push`, confirmar visualmente:
   1. No Table Editor, a tabela não deve aparecer como `UNRESTRICTED`
   2. Rodar esta query no SQL Editor como segunda confirmação:
      ```sql
      select tablename, rowsecurity from pg_tables where schemaname = 'public';
      ```
      Todas as linhas devem ter `rowsecurity = true`.
-- [ ] Só depois de confirmado, fazer o commit da migration no Git
+- [x] Só depois de confirmado, fazer o commit da migration no Git
 
 ---
 
@@ -85,15 +85,13 @@ tendo a `anon key`** do Supabase, porque precisa dela para falar com o Supabase
 Auth (login com Discord). Se a Data API (PostgREST) do projeto estiver exposta,
 essa chave também permite consultar tabelas direto, sem passar pelo Go.
 
-- [ ] Decidir **com qual papel do Postgres o Go conecta**:
-  - papel privilegiado (RLS ignorado; autorização 100% no Go), ou
-  - papel sujeito a RLS, propagando as claims do JWT (defesa em profundidade)
-- [ ] Decidir o que fazer com a **Data API do Supabase**:
-  - desabilitar a exposição do schema `public` na Data API, ou
-  - mantê-la exposta **com RLS negando tudo por padrão** para `anon` e
-    `authenticated`
-- [ ] Registrar a decisão como **ADR novo** em `docs/decisions/`
-- [ ] Testar a decisão do jeito errado de propósito: com a `anon key` do app na
+- [x] Decidir **com qual papel do Postgres o Go conecta**: papel privilegiado
+      (RLS ignorado; autorização 100% no Go) — ver [ADR-005](../decisions/005-papel-postgres-go-e-data-api.md)
+- [x] Decidir o que fazer com a **Data API do Supabase**: desabilitar a
+      exposição do schema `public` — ver [ADR-005](../decisions/005-papel-postgres-go-e-data-api.md)
+- [x] Registrar a decisão como **ADR novo** em `docs/decisions/` — [ADR-005](../decisions/005-papel-postgres-go-e-data-api.md)
+- [x] Desabilitar a Data API no painel (Project Settings → Data API) e testar
+      a decisão do jeito errado de propósito: com a `publishable key` do app na
       mão, tentar ler uma tabela direto pela Data API. O resultado esperado é
       falha. Se vier dado, a decisão não está implementada
 
@@ -104,22 +102,20 @@ essa chave também permite consultar tabelas direto, sem passar pelo Go.
 
 ## 5. Conectando o Go ao Postgres
 
-- [ ] Adicionar o `pgx` ao módulo:
+- [x] Adicionar o `pgx` ao módulo:
   ```bash
   cd backend && go get github.com/jackc/pgx/v5
   ```
-- [ ] Implementar `internal/platform/config` — leitura e **validação** das
+- [x] Implementar `internal/platform/config` — leitura e **validação** das
       variáveis de ambiente (falhar no start se faltar alguma, em vez de descobrir
       em produção)
-- [ ] Implementar `internal/platform/database` — pool de conexões e helper de
+- [x] Implementar `internal/platform/database` — pool de conexões e helper de
       transação
-- [ ] ⚠️ Decidir entre **conexão direta** (porta 5432) e **pooler** (Supavisor).
-      Se for pooler em **modo transação**, o cache de prepared statements do `pgx`
-      precisa ser desligado, senão aparecem erros intermitentes de "prepared
-      statement already exists". Registrar a escolha
-- [ ] Implementar `internal/platform/logger` (log estruturado) e
+- [x] ⚠️ Decidir entre **conexão direta** (porta 5432) e **pooler** (Supavisor):
+      pooler em **modo sessão** — ver [ADR-006](../decisions/006-pooler-sessao-conexao-postgres.md)
+- [x] Implementar `internal/platform/logger` (log estruturado) e
       `internal/platform/httpserver` (servidor HTTP com graceful shutdown)
-- [ ] Confirmar a conexão com um endpoint de saúde (`GET /healthz`) que faça um
+- [x] Confirmar a conexão com um endpoint de saúde (`GET /healthz`) que faça um
       `select 1` no banco
 
 ---

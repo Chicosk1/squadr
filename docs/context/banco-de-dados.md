@@ -82,7 +82,7 @@ query. O que não muda:
 | RLS continua relevante para o **Storage** e para qualquer acesso que não passe pelo Go | Se o Go conectar com um papel privilegiado, o RLS é **ignorado** nessas queries |
 
 ⚠️ **Cuidado com uma conclusão fácil e errada:** "o app não fala mais com o
-banco, então o RLS não importa". O app **continua tendo a `anon key`**, porque
+banco, então o RLS não importa". O app **continua tendo a `publishable key`**, porque
 precisa dela para falar com o Supabase Auth (login com Discord). Se a Data API
 (PostgREST) do projeto continuar expondo o schema `public`, essa mesma chave
 permite consultar tabelas direto, **sem passar pelo Go** — e aí toda a

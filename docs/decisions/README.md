@@ -9,6 +9,9 @@ Cada decisão técnica relevante do Squadr é um arquivo numerado nesta pasta.
 | [001](./001-migrations-e-rls-supabase.md) | Processo de migrations e RLS no Supabase | ✅ Aceito (emendado pelo 003) | 30/06/2026 |
 | [002](./002-stack-mobile-react-native-expo.md) | Stack inicial: React Native + Expo com Supabase como backend completo | ⛔ Supersedido pelo 003 | 29/06/2026 |
 | [003](./003-migracao-kmp-e-backend-go.md) | Migração para Kotlin Multiplatform no mobile e backend próprio em Go | ✅ Aceito — **stack vigente** | 29/07/2026 |
+| [004](./004-bibliotecas-do-mobile-e-backend.md) | Bibliotecas do mobile (Ktor, Koin) e do backend (chi, coder/websocket) | ✅ Aceito | 30/07/2026 |
+| [005](./005-papel-postgres-go-e-data-api.md) | Papel do Postgres para o backend Go e exposição da Data API do Supabase | ✅ Aceito | 04/08/2026 |
+| [006](./006-pooler-sessao-conexao-postgres.md) | Conexão do backend Go ao Postgres via pooler (Supavisor) em modo sessão | ✅ Aceito | 04/08/2026 |
 
 ## Convenções
 
@@ -35,7 +38,6 @@ Registradas aqui para não se perderem. Cada uma vira um ADR quando resolvida:
 
 | Pendência | Prazo | Onde está descrita |
 |---|---|---|
-| Papel do Postgres usado pelo Go e estratégia de RLS (defesa em profundidade ou só Storage) | **Antes** de criar as tabelas — Fase 3 | [ADR-001 (emenda)](./001-migrations-e-rls-supabase.md), [`context/banco-de-dados.md`](../context/banco-de-dados.md) §3 |
 | Mecanismo de fan-out do chat (`LISTEN/NOTIFY` vs. Redis pub/sub) | Antes de subir a 2ª instância de `cmd/ws` | [`context/arquitetura.md`](../context/arquitetura.md) §5.3 |
 | Como o app fala com o Supabase Auth (biblioteca KMP de comunidade vs. REST direto) | Fase 3 | [`context/arquitetura.md`](../context/arquitetura.md) §5.1 |
 | Bibliotecas do mobile (cliente HTTP, DI, cache local) e do backend (roteador, WebSocket, sqlc) | Fases 2 e 3 | [`context/stack.md`](../context/stack.md) §3 |
