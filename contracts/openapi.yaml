@@ -2,14 +2,10 @@ openapi: 3.1.0
 
 info:
   title: Squadr API
-  version: 0.1.0-draft
+  version: 0.1.0
   summary: API REST do Squadr — app de matchmaking para gamers brasileiros.
   description: |
     Fonte única de verdade da API. Alterar aqui **antes** de mexer no Go ou no Kotlin.
-
-    **Estado: esqueleto.** Rotas e schemas principais desenhados; detalhes
-    (campos exatos, paginação, códigos por rota) são fechados na Fase 3 do
-    roadmap. Ver `docs/roadmaps/03-backend-banco-e-autenticacao.md`, seção 6.
 
     Autenticação: JWT emitido pelo **Supabase Auth** (Discord OAuth) e validado
     pelo backend Go contra o JWKS do Supabase. O backend não emite tokens.
@@ -18,8 +14,20 @@ info:
     (`cmd/ws`), que OpenAPI não descreve. O protocolo das mensagens do WebSocket
     precisa ser documentado à parte (pendência da Fase 3). O histórico de
     mensagens, por ser REST, está neste contrato.
+
+    ## Convenções
+
+    - **Erro:** todo desfecho de erro devolve o schema `Error`, com um `code`
+      estável (o app trata pelo `code`, nunca pela `message`) e uma `message`
+      em PT-BR exibível ao usuário.
+    - **Paginação:** por cursor opaco. A resposta traz `items` e `nextCursor`;
+      `nextCursor: null` significa fim da coleção. O cliente repassa o valor
+      recebido em `?cursor=` sem interpretá-lo.
+    - **`operationId`:** define o nome da função no cliente Kotlin gerado a
+      partir deste contrato — não renomear sem considerar o impacto no app.
   license:
-    name: Ver LICENSE no repositório
+    name: MIT
+    identifier: MIT
 
 servers:
   - url: http://localhost:8080
@@ -32,7 +40,11 @@ security:
 
 tags:
   - name: health
+    description: sonda de saúde do serviço, usada por deploy e monitoramento
   - name: auth
+    description: sessão e primeiro login
+  - name: catalog
+    description: dados de referência do produto (jogos suportados)
   - name: user
     description: perfil, status, device tokens
   - name: matching
@@ -47,6 +59,7 @@ tags:
 paths:
   /healthz:
     get:
+      operationId: getHealth
       tags: [health]
       summary: Saúde do serviço (inclui checagem do banco)
       security: []
@@ -55,16 +68,16 @@ paths:
           description: serviço saudável
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string, examples: [ok] }
-                  database: { type: string, examples: [ok] }
+              schema: { $ref: "#/components/schemas/Health" }
         "503":
-          description: serviço degradado
+          description: serviço degradado — o banco não respondeu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
 
   /auth/session:
     post:
+      operationId: createSession
       tags: [auth]
       summary: Primeiro login — cria o perfil a partir das claims do JWT
       description: |
@@ -86,15 +99,37 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /games:
+    get:
+      operationId: listGames
+      tags: [catalog]
+      summary: Jogos suportados pela plataforma
+      description: |
+        Alimenta a tela de seleção de jogos do onboarding
+        (`docs/context/produto.md`, seção 4). Coleção pequena e estável — sem
+        paginação.
+      responses:
+        "200":
+          description: lista de jogos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Game" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
 
   /me:
     get:
+      operationId: getMe
       tags: [user]
       summary: Perfil do usuário autenticado
       responses:
         "200": { $ref: "#/components/responses/ProfileResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
     patch:
+      operationId: updateMe
       tags: [user]
       summary: Atualiza o próprio perfil
       requestBody:
@@ -109,6 +144,7 @@ paths:
 
   /me/games:
     put:
+      operationId: replaceMyGames
       tags: [user]
       summary: Substitui a lista de jogos do jogador (com rank e estilo)
       requestBody:
@@ -125,6 +161,7 @@ paths:
 
   /me/status:
     patch:
+      operationId: updateMyStatus
       tags: [user]
       summary: Atualiza o status de presença
       requestBody:
@@ -139,11 +176,16 @@ paths:
       responses:
         "204": { description: atualizado }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /me/device-tokens:
     post:
+      operationId: registerDeviceToken
       tags: [user]
       summary: Registra o token FCM do dispositivo
+      description: |
+        Idempotente por token: registrar o mesmo token de novo apenas atualiza
+        `updated_at`.
       requestBody:
         required: true
         content:
@@ -157,9 +199,11 @@ paths:
       responses:
         "204": { description: registrado }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /players/{playerId}:
     get:
+      operationId: getPlayer
       tags: [user]
       summary: Perfil público de outro jogador
       parameters:
@@ -175,6 +219,7 @@ paths:
 
   /feed:
     get:
+      operationId: getFeed
       tags: [matching]
       summary: Feed de discovery
       description: |
@@ -195,15 +240,18 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [items, nextCursor]
                 properties:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/PlayerSummary" }
-                  nextCursor: { type: [string, "null"] }
+                  nextCursor: { $ref: "#/components/schemas/NextCursor" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /swipes:
     post:
+      operationId: createSwipe
       tags: [matching]
       summary: Registra like ou pular
       description: Se houver like mútuo, cria o match na mesma transação.
@@ -224,6 +272,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [matched]
                 properties:
                   matched: { type: boolean }
                   match:
@@ -231,14 +280,17 @@ paths:
                       - { $ref: "#/components/schemas/Match" }
                       - { type: "null" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "409":
           description: swipe já registrado para esse jogador
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /matches:
     get:
+      operationId: listMatches
       tags: [matching]
       summary: Matches do usuário autenticado
       parameters:
@@ -251,15 +303,18 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [items, nextCursor]
                 properties:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/Match" }
-                  nextCursor: { type: [string, "null"] }
+                  nextCursor: { $ref: "#/components/schemas/NextCursor" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /matches/{matchId}/messages:
     get:
+      operationId: listMatchMessages
       tags: [chat]
       summary: Histórico de mensagens do match
       description: Só os dois participantes do match podem ler.
@@ -274,17 +329,20 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [items, nextCursor]
                 properties:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/Message" }
-                  nextCursor: { type: [string, "null"] }
+                  nextCursor: { $ref: "#/components/schemas/NextCursor" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /matches/{matchId}/invite-copied:
     post:
+      operationId: markInviteCopied
       tags: [matching]
       summary: Marca que o convite para o jogo foi copiado
       description: |
@@ -296,9 +354,11 @@ paths:
         "204": { description: registrado }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /squads:
     get:
+      operationId: listSquads
       tags: [group]
       summary: Lista squads abertos
       parameters:
@@ -314,13 +374,16 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [items, nextCursor]
                 properties:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/Squad" }
-                  nextCursor: { type: [string, "null"] }
+                  nextCursor: { $ref: "#/components/schemas/NextCursor" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
     post:
+      operationId: createSquad
       tags: [group]
       summary: Cria um squad
       requestBody:
@@ -339,6 +402,7 @@ paths:
 
   /squads/{squadId}:
     get:
+      operationId: getSquad
       tags: [group]
       summary: Detalhe do squad, com membros e vagas restantes
       parameters:
@@ -354,6 +418,7 @@ paths:
 
   /squads/{squadId}/requests:
     get:
+      operationId: listSquadRequests
       tags: [group]
       summary: Pedidos de entrada (só o criador do squad)
       parameters:
@@ -368,7 +433,9 @@ paths:
                 items: { $ref: "#/components/schemas/SquadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
     post:
+      operationId: createSquadRequest
       tags: [group]
       summary: Pede para entrar no squad
       parameters:
@@ -380,6 +447,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SquadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "409":
           description: squad lotado ou pedido já existente
           content:
@@ -388,16 +456,14 @@ paths:
 
   /squad-requests/{requestId}/accept:
     post:
+      operationId: acceptSquadRequest
       tags: [group]
       summary: Aprova um pedido de entrada
       description: |
         Só o criador do squad. Adiciona o membro e incrementa `slots_filled` na
         mesma transação; falha com 409 se a última vaga já foi ocupada.
       parameters:
-        - name: requestId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/RequestId"
       responses:
         "200":
           description: pedido aprovado
@@ -406,14 +472,37 @@ paths:
               schema: { $ref: "#/components/schemas/Squad" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "409":
-          description: squad lotado
+          description: squad lotado, ou pedido já respondido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /squad-requests/{requestId}/reject:
+    post:
+      operationId: rejectSquadRequest
+      tags: [group]
+      summary: Recusa um pedido de entrada
+      description: |
+        Só o criador do squad. Move o pedido para `rejected` sem alterar
+        `slots_filled`.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "204": { description: pedido recusado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: pedido já respondido
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
   /commendations:
     post:
+      operationId: createCommendation
       tags: [moderation]
       summary: Elogia outro jogador
       description: Limite diário aplicado no servidor.
@@ -431,6 +520,8 @@ paths:
       responses:
         "201": { description: elogio registrado }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
         "429":
           description: limite diário de elogios atingido
           content:
@@ -439,6 +530,7 @@ paths:
 
   /reports:
     post:
+      operationId: createReport
       tags: [moderation]
       summary: Reporta um usuário
       requestBody:
@@ -454,9 +546,12 @@ paths:
       responses:
         "201": { description: report registrado }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /blocks:
     post:
+      operationId: createBlock
       tags: [moderation]
       summary: Bloqueia um usuário
       description: |
@@ -473,6 +568,25 @@ paths:
                 blockedId: { type: string, format: uuid }
       responses:
         "201": { description: bloqueio registrado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /blocks/{blockedId}:
+    delete:
+      operationId: deleteBlock
+      tags: [moderation]
+      summary: Desfaz um bloqueio
+      description: |
+        Idempotente: desbloquear quem não está bloqueado devolve 204 do mesmo
+        jeito. Desfazer o bloqueio não restaura swipes nem matches perdidos.
+      parameters:
+        - name: blockedId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: bloqueio removido }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
 components:
@@ -499,10 +613,17 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     Cursor:
       name: cursor
       in: query
-      description: cursor de paginação devolvido em `nextCursor`
+      description: |
+        Cursor opaco devolvido em `nextCursor`. O cliente repassa o valor como
+        veio, sem interpretar — o formato interno pode mudar sem aviso.
       schema: { type: string }
     Limit:
       name: limit
@@ -531,7 +652,7 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     ValidationError:
-      description: corpo da requisição inválido
+      description: corpo ou parâmetros da requisição inválidos
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -539,7 +660,9 @@ components:
   schemas:
     Error:
       type: object
-      description: Formato único de erro para toda a API.
+      description: |
+        Formato único de erro para toda a API. O app decide o que fazer pelo
+        `code` — a `message` é texto para o usuário e pode mudar sem aviso.
       required: [code, message]
       properties:
         code:
@@ -551,7 +674,21 @@ components:
           description: mensagem em PT-BR, exibível ao usuário
         details:
           type: object
+          description: |
+            Contexto adicional legível por máquina. Em erros de validação (422),
+            traz o nome do campo como chave e a explicação como valor.
           additionalProperties: true
+
+    NextCursor:
+      type: [string, "null"]
+      description: cursor da próxima página; `null` indica fim da coleção
+
+    Health:
+      type: object
+      required: [status, database]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        database: { type: string, enum: [ok, unreachable] }
 
     PresenceStatus:
       type: string
@@ -575,6 +712,7 @@ components:
 
     Game:
       type: object
+      required: [id, name, slug]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }

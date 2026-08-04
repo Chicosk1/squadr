@@ -125,13 +125,17 @@ essa chave também permite consultar tabelas direto, sem passar pelo Go.
 A ordem de trabalho no projeto é **contrato → Go → Kotlin**. Sem isso, cliente e
 servidor divergem e o erro só aparece no dispositivo do usuário.
 
-- [ ] Preencher `contracts/openapi.yaml` com os endpoints do MVP (o esqueleto já
+- [x] Preencher `contracts/openapi.yaml` com os endpoints do MVP (o esqueleto já
       está lá): perfil, feed, swipe, matches, mensagens, squads, report/bloqueio,
       device token
-- [ ] Definir o formato padrão de **erro** (mesmo corpo em todos os endpoints) —
+- [x] Definir o formato padrão de **erro** (mesmo corpo em todos os endpoints) —
       decidir uma vez aqui evita cinco formatos diferentes depois
-- [ ] Definir paginação do feed e do histórico de mensagens
-- [ ] Validar que o arquivo é um OpenAPI válido antes de commitar
+- [x] Definir paginação do feed e do histórico de mensagens
+- [x] Validar que o arquivo é um OpenAPI válido antes de commitar. Config do
+      lint em [`redocly.yaml`](../../redocly.yaml) na raiz; da raiz do repo:
+      ```bash
+      npx @redocly/cli lint
+      ```
 
 ---
 

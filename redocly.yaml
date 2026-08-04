@@ -1,0 +1,20 @@
+# Configuração do lint do contrato da API.
+#
+#   npx @redocly/cli lint
+#
+# As regras abaixo são as que o projeto trata como obrigatórias. O resto vem
+# do preset "recommended" do Redocly.
+apis:
+  squadr:
+    root: contracts/openapi.yaml
+
+extends:
+  - recommended
+
+rules:
+  operation-operationId: error
+  operation-operationId-unique: error
+
+  no-server-example.com: off
+
+  operation-4xx-response: off
