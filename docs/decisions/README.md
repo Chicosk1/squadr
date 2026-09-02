@@ -12,6 +12,11 @@ Cada decisão técnica relevante do Squadr é um arquivo numerado nesta pasta.
 | [004](./004-bibliotecas-do-mobile-e-backend.md) | Bibliotecas do mobile (Ktor, Koin) e do backend (chi, coder/websocket) | ✅ Aceito | 30/07/2026 |
 | [005](./005-papel-postgres-go-e-data-api.md) | Papel do Postgres para o backend Go e exposição da Data API do Supabase | ✅ Aceito | 04/08/2026 |
 | [006](./006-pooler-sessao-conexao-postgres.md) | Conexão do backend Go ao Postgres via pooler (Supavisor) em modo sessão | ✅ Aceito | 04/08/2026 |
+| [007](./007-biblioteca-jwt-e-jwks-no-go.md) | Biblioteca de JWT e JWKS no backend Go (golang-jwt + keyfunc) | ✅ Aceito | 04/08/2026 |
+| [008](./008-biblioteca-supabase-auth-kmp.md) | Biblioteca para o app falar com o Supabase Auth (supabase-kt / auth-kt) | ✅ Aceito | 05/08/2026 |
+| [009](./009-buildkonfig-env-para-mobile.md) | Levar variáveis do `.env` para o Kotlin com BuildKonfig | ✅ Aceito | 05/08/2026 |
+| [010](./010-esquema-deep-link-oauth.md) | Esquema de deep link para o retorno do OAuth (`com.squadr://login-callback`) | ✅ Aceito | 05/08/2026 |
+| [011](./011-supabaseclient-e-koin-no-mobile.md) | Primeira instalação do Koin: `SupabaseClient` como singleton | ✅ Aceito | 05/08/2026 |
 
 ## Convenções
 
@@ -39,6 +44,5 @@ Registradas aqui para não se perderem. Cada uma vira um ADR quando resolvida:
 | Pendência | Prazo | Onde está descrita |
 |---|---|---|
 | Mecanismo de fan-out do chat (`LISTEN/NOTIFY` vs. Redis pub/sub) | Antes de subir a 2ª instância de `cmd/ws` | [`context/arquitetura.md`](../context/arquitetura.md) §5.3 |
-| Como o app fala com o Supabase Auth (biblioteca KMP de comunidade vs. REST direto) | Fase 3 | [`context/arquitetura.md`](../context/arquitetura.md) §5.1 |
 | Bibliotecas do mobile (cliente HTTP, DI, cache local) e do backend (roteador, WebSocket, sqlc) | Fases 2 e 3 | [`context/stack.md`](../context/stack.md) §3 |
 | Critério numérico para abrir o cadastro ao público (fim do crescimento por convite) | Antes do lançamento | [`roadmaps/03-backend-banco-e-autenticacao.md`](../roadmaps/03-backend-banco-e-autenticacao.md) |

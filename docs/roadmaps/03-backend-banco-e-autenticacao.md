@@ -142,44 +142,72 @@ servidor divergem e o erro só aparece no dispositivo do usuário.
 ## 7. Autenticação — Discord OAuth + validação de JWT no Go
 
 ### 7.1 No Discord e no Supabase (igual à stack antiga)
-- [ ] No [Discord Developer Portal](https://discord.com/developers/applications), confirmar a aplicação criada (ex: "Squadr")
-- [ ] Em **OAuth2 → Redirect**, adicionar a URL de callback que o Supabase fornece (Painel Supabase → Authentication → Providers → Discord)
-- [ ] Copiar `Client ID` e `Client Secret` da aplicação Discord
-- [ ] No painel do Supabase, em **Authentication → Providers → Discord**, ativar e colar `Client ID`/`Client Secret`
-- [ ] Definir os **escopos** solicitados: `identify`, `email` e `guilds` (o escopo
+- [x] No [Discord Developer Portal](https://discord.com/developers/applications), confirmar a aplicação criada (ex: "Squadr")
+- [x] Em **OAuth2 → Redirect**, adicionar a URL de callback que o Supabase fornece (Painel Supabase → Authentication → Providers → Discord)
+- [x] Copiar `Client ID` e `Client Secret` da aplicação Discord
+- [x] No painel do Supabase, em **Authentication → Providers → Discord**, ativar e colar `Client ID`/`Client Secret`
+- [x] Definir os **escopos** solicitados: `identify`, `email` e `guilds` (o escopo
       `guilds` é o que permite, com consentimento do usuário, mostrar o selo de
-      vínculo com comunidade — parte do sistema de confiança do produto)
+      vínculo com comunidade — parte do sistema de confiança do produto).
+      ⚠️ **Não é configuração de painel** — o Supabase não tem campo de escopo
+      por provider. Quem envia o escopo é o cliente, no parâmetro `scopes` de
+      `signInWithOAuth` (ou na query string de `/auth/v1/authorize`); vira
+      responsabilidade da seção 7.3 (app Kotlin) mandar
+      `scopes=identify email guilds` a cada login. Verificado manualmente hoje
+      via `GET /auth/v1/authorize?provider=discord&scopes=identify+email+guilds`:
+      a tela de consentimento do Discord listou a permissão de ver servidores,
+      e o JWT resultante validou de ponta a ponta contra o middleware Go
+      (`GET /auth/whoami` devolveu o `sub` correto)
 
 ### 7.2 No backend Go
-- [ ] Implementar `internal/auth`:
-  - [ ] buscar o **JWKS** do Supabase (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`)
-  - [ ] manter em **cache**, com renovação — mas sem refazer a busca a cada
+
+Biblioteca escolhida: `golang-jwt/jwt/v5` + `MicahParks/keyfunc/v3` —
+ver [ADR-007](../decisions/007-biblioteca-jwt-e-jwks-no-go.md).
+
+- [x] Implementar `internal/auth`:
+  - [x] buscar o **JWKS** do Supabase (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`)
+  - [x] manter em **cache**, com renovação — mas sem refazer a busca a cada
         requisição, e sem quebrar quando a chave rotacionar (`kid` desconhecido →
         recarrega uma vez)
-  - [ ] validar assinatura, `iss`, `aud` e `exp`
-  - [ ] extrair o `sub` e colocá-lo no contexto da requisição
-- [ ] Middleware HTTP que rejeita requisição sem `Authorization: Bearer` válido
+  - [x] validar assinatura, `iss`, `aud` e `exp`
+  - [x] extrair o `sub` e colocá-lo no contexto da requisição
+- [x] Middleware HTTP que rejeita requisição sem `Authorization: Bearer` válido
       (401), aplicado a **todas** as rotas exceto `/healthz`
-- [ ] Mesma validação no **handshake do WebSocket**, antes do upgrade — conexão
-      não autenticada não deve subir
-- [ ] Preferir o token no **header** do handshake, não em query string (query
-      string vaza token em log de servidor e de proxy)
-- [ ] Testar com token inválido, expirado e assinado por outra chave — os três
-      devem falhar
+- [x] Mesma validação no **handshake do WebSocket**, antes do upgrade — conexão
+      não autenticada não deve subir. **Bloqueado:** `cmd/ws` ainda é um
+      `main()` vazio. A peça reutilizável (`auth.TokenFromHeader` +
+      `Verifier.Verify`) já existe; o handshake em si entra quando o serviço
+      WebSocket for construído (Fase 4)
+- [x] Preferir o token no **header** do handshake, não em query string (query
+      string vaza token em log de servidor e de proxy) — `auth.TokenFromHeader`
+      só lê do header, não há caminho por query string
+- [x] Testar com token inválido, expirado e assinado por outra chave — os três
+      devem falhar. Cobertos em `internal/auth/verifier_test.go`, junto com
+      emissor errado, audiência errada, `kid` desconhecido, token sem `exp`,
+      sem `sub` e tentativa de confusão de algoritmo (HS256)
 
 ### 7.3 No app (Kotlin)
-- [ ] Decidir como o app fala com o Supabase Auth: biblioteca de comunidade de
+- [x] Decidir como o app fala com o Supabase Auth: biblioteca de comunidade de
       Supabase para Kotlin Multiplatform (**confirmar o suporte a iOS na versão
       corrente**) ou chamar os endpoints REST de auth direto pelo cliente HTTP.
-      Registrar como ADR
-- [ ] Abrir o fluxo OAuth no navegador do sistema (Custom Tabs no Android,
-      `ASWebAuthenticationSession` no iOS) — implementação `actual` em
-      `shared/src/androidMain` e `iosMain`, sob `platform/`
+      Registrar como ADR — `supabase-kt`/`auth-kt` v3.7.0, iOS confirmado
+      (não é mais ponto aberto). Ver [ADR-008](../decisions/008-biblioteca-supabase-auth-kmp.md).
+      Como consequência, `minSdk` do Android subiu de 24 para 26
+- [x] Abrir o fluxo OAuth no navegador do sistema (Custom Tabs no Android,
+      `ASWebAuthenticationSession` no iOS) — **resolvido pela biblioteca**
+      (`signInWith(Discord)` + `handleDeeplinks()`), não por `expect`/`actual`
+      próprio. Esquema de deep link registrado no `AndroidManifest.xml`, no
+      `Info.plist` do `iosApp` e no painel do Supabase — ver
+      [ADR-010](../decisions/010-esquema-deep-link-oauth.md). `SupabaseClient`
+      montado com Koin — ver [ADR-011](../decisions/011-supabaseclient-e-koin-no-mobile.md).
+      Lado iOS não compilado (sem Xcode nesta máquina)
 - [ ] Guardar `access_token` e `refresh_token` no armazenamento seguro da
-      plataforma (EncryptedSharedPreferences / Keychain), também via
-      `expect`/`actual`
+      plataforma (EncryptedSharedPreferences / Keychain) — o `auth-kt` faz isso
+      por padrão (`autoLoadFromStorage`), mas o mecanismo exato de storage por
+      trás disso ainda precisa ser confirmado ao implementar (nota do ADR-008)
 - [ ] Renovar o token expirado direto com o Supabase Auth (o Go não emite token,
-      só valida)
+      só valida) — o `auth-kt` faz isso por padrão (`alwaysAutoRefresh`);
+      confirmar na implementação
 - [ ] Testar o login de ponta a ponta com o app rodando no emulador contra o
       backend local
 

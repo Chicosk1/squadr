@@ -8,18 +8,24 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	APIPort     int
-	LogLevel    string
+	DatabaseURL         string
+	APIPort             int
+	LogLevel            string
+	SupabaseJWKSURL     string
+	SupabaseJWTIssuer   string
+	SupabaseJWTAudience string
 }
 
 func Load() (Config, error) {
 	ld := &loader{}
 
 	cfg := Config{
-		DatabaseURL: ld.require("DATABASE_URL"),
-		APIPort:     ld.requireInt("API_PORT"),
-		LogLevel:    ld.optional("LOG_LEVEL", "info"),
+		DatabaseURL:         ld.require("DATABASE_URL"),
+		APIPort:             ld.requireInt("API_PORT"),
+		LogLevel:            ld.optional("LOG_LEVEL", "info"),
+		SupabaseJWKSURL:     ld.require("SUPABASE_JWKS_URL"),
+		SupabaseJWTIssuer:   ld.require("SUPABASE_JWT_ISSUER"),
+		SupabaseJWTAudience: ld.require("SUPABASE_JWT_AUDIENCE"),
 	}
 
 	if err := ld.validationError(); err != nil {
