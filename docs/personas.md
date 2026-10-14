@@ -20,7 +20,7 @@ As personas existem por dois motivos:
 
 | Jogo | Personas | Proporção total |
 |---|---|---|
-| ARK | ARK-PVP-RAIDER, ARK-PVE-BREEDER, ARK-PVE-CONSTRUTOR | 35% |
+| ARK | ARK-PVP-RAIDER, ARK-PVE-BREEDER, ARK-PVE-BUILDER | 35% |
 | Rust | RUST-GRINDER, RUST-CASUAL, RUST-APRENDIZ | 30% |
 | League of Legends | LOL-SUPORTE, LOL-ADC, LOL-ARAM | 30% |
 | Multi-jogo | MULTI-CASUAL | 5% |
@@ -40,17 +40,17 @@ As personas existem por dois motivos:
 
 ## Personas de ARK
 
-| Atributo | ARK-PVP-RAIDER | ARK-PVE-BREEDER | ARK-PVE-CONSTRUTOR |
+| Atributo | ARK-PVP-RAIDER | ARK-PVE-BREEDER | ARK-PVE-BUILDER |
 |---|---|---|---|
-| **Descrição** | Raider noturno | Criador de fim de semana | Construtor dedicado |
+| **Descrição** | Raider noturno | Breeder de fim de semana | Builder dedicado |
 | **Proporção** | 12% | 12% | 11% |
 | **Versão** | ASA | ASA | ASA 70%, ASE 30% |
-| **Plataforma** | PC Steam 80%, console 20% | PC Steam | PC Steam |
+| **Plataforma** | PC Steam 80%, Xbox 10%, PlayStation 10% | PC Steam | PC Steam |
 | **Modo** | PvP | PvE | PvE |
 | **Servidor** | Oficial | Não oficial rates altas | Não oficial rates baixas |
 | **Intensidade** | 4–5 | 1–2 | 2–3 |
 | **Horas** | 2000+ | 500–2000 | 100–500 |
-| **Funções** | PvP (principal) + criador | Criador (principal) + coletor | Construtor (principal) + coletor |
+| **Funções** | PvP (principal) + breeder | Breeder (principal) + coletor | Builder (principal) + coletor |
 | **Horários** | Todos os dias, noite e madrugada | Sex noite; sáb e dom tarde e noite | Qui e sex noite; sáb e dom tarde e noite |
 | **Voz** | Usa e exige | Às vezes, não exige | Usa, não exige |
 | **Tolerância a toxicidade** | 4–5 | 1–2 | 2–3 |
@@ -61,9 +61,9 @@ As personas existem por dois motivos:
 
 **Casos de teste embutidos:**
 
-- Os 30% de ASE no ARK-PVE-CONSTRUTOR testam o filtro de versão: esses usuários nunca podem aparecer para quem joga ASA.
+- Os 30% de ASE no ARK-PVE-BUILDER testam o filtro de versão: esses usuários nunca podem aparecer para quem joga ASA.
 - ARK-PVP-RAIDER nunca pode aparecer para as personas PvE (filtro de modo).
-- ARK-PVE-BREEDER e ARK-PVE-CONSTRUTOR são complementares: funções diferentes que se completam e horários com boa sobreposição.
+- ARK-PVE-BREEDER e ARK-PVE-BUILDER são complementares: funções diferentes que se completam e horários com boa sobreposição.
 
 ---
 
@@ -71,7 +71,7 @@ As personas existem por dois motivos:
 
 | Atributo | RUST-GRINDER | RUST-CASUAL | RUST-APRENDIZ |
 |---|---|---|---|
-| **Descrição** | Grinder de wipe | Construtor casual | Aprendiz |
+| **Descrição** | Grinder de wipe | Builder casual | Aprendiz |
 | **Proporção** | 10% | 10% | 10% |
 | **Versão** | PC | PC | PC 85%, console 15% |
 | **Servidor** | Oficial | Comunitário vanilla | Comunitário vanilla ou modificado |
@@ -79,7 +79,7 @@ As personas existem por dois motivos:
 | **Wipe** | Sempre | Às vezes | Às vezes |
 | **Intensidade** | 5 | 2 | 3 |
 | **Horas** | 2000+ | 500–2000 | <100 |
-| **Funções** | PvP (principal) + raider | Construtor (principal) + eletricista | Coletor (principal) + construtor |
+| **Funções** | PvP (principal) + raider | Builder (principal) + eletricista | Coletor (principal) + builder |
 | **Horários** | Qui tarde, noite e madrugada; sex a dom noite e madrugada | Seg a sex noite | Ter a sex noite; sáb tarde |
 | **Voz** | Usa e exige | Usa, não exige | Usa, não exige |
 | **Tolerância a toxicidade** | 5 | 2 | 3 |
@@ -131,7 +131,7 @@ As personas existem por dois motivos:
 - **Tolerância a toxicidade:** 2–3.
 - **Compromisso:** eventual.
 
-**Caso de teste embutido:** valida a recomendação contextualizada por jogo. No ARK, este usuário deve aparecer para criadores; no LoL, para jogadores de ARAM; e nunca para personas competitivas.
+**Caso de teste embutido:** valida a recomendação contextualizada por jogo. No ARK, este usuário deve aparecer para breeders; no LoL, para jogadores de ARAM; e nunca para personas competitivas.
 
 ---
 
@@ -145,7 +145,7 @@ Sem ruído, todos os usuários da mesma persona seriam idênticos e qualquer alg
 | Intensidade | Varia ±1 com 20% de chance, limitada entre 1 e 5 |
 | Função secundária | Trocada por outra função do mesmo jogo com 15% de chance |
 | Pesos | Cada peso varia ±1 com 30% de chance, limitado entre 1 e 5 |
-| Outliers | 5% dos usuários recebem um atributo totalmente aleatório |
+| Outliers | 5% dos usuários recebem um atributo flexível totalmente aleatório (intensidade, horários, tolerância, nível desejado, compromisso ou pesos). Atributos dos filtros rígidos nunca são alterados |
 | Faixas de valores | Valores definidos como intervalo (ex.: intensidade 4–5) são sorteados uniformemente dentro do intervalo |
 
 A geração usa **semente fixa**, para que todos os experimentos sejam reproduzíveis.
@@ -158,13 +158,23 @@ Usado para calcular Precision@K e NDCG@K. **Só conta como relevante o candidato
 
 | Grau | Significado | Pares |
 |---|---|---|
-| **2** | Ideal | Mesma persona no ARK; mesma persona no Rust; LOL-SUPORTE ↔ LOL-ADC; ARK-PVE-BREEDER ↔ ARK-PVE-CONSTRUTOR |
-| **1** | Bom | LOL-SUPORTE ↔ LOL-SUPORTE; LOL-ADC ↔ LOL-ADC; LOL-ARAM ↔ LOL-ARAM; RUST-APRENDIZ ↔ RUST-CASUAL; MULTI-CASUAL ↔ persona casual de cada jogo que ele joga |
+| **2** | Ideal | Mesma persona no ARK; mesma persona no Rust; LOL-SUPORTE ↔ LOL-ADC; ARK-PVE-BREEDER ↔ ARK-PVE-BUILDER |
+| **1** | Bom | LOL-SUPORTE ↔ LOL-SUPORTE; LOL-ADC ↔ LOL-ADC; LOL-ARAM ↔ LOL-ARAM; RUST-APRENDIZ ↔ RUST-CASUAL; MULTI-CASUAL ↔ persona casual de cada jogo que ele joga; MULTI-CASUAL ↔ MULTI-CASUAL (no mesmo jogo) |
 | **0** | Controle (não deve ser recomendado) | RUST-APRENDIZ ↔ RUST-GRINDER; qualquer par PvE ↔ PvP; ASE ↔ ASA; PC ↔ console no Rust |
 
 No LoL, o par complementar vale mais que a mesma persona: dois ADCs não formam uma boa dupla, e o gabarito precisa refletir isso.
 
 Qualquer par não listado na tabela tem grau 0.
+
+---
+
+## Premissas dos filtros rígidos
+
+Implementados em `internal/seed/gabarito.go` e, na Fase 4, em Cypher.
+
+- **Crossplay no ARK:** PC (Steam e Epic) joga junto; Xbox e PlayStation formam grupos isolados. Premissa do protótipo: as regras reais devem ser verificadas antes de serem citadas.
+- **Solo/Duo no LoL:** só conta como fila em comum se ambos são ranqueados e a diferença de elo é no máximo 2. Sem ranked não entra em Solo/Duo.
+- **Likes mock:** os candidatos de cada usuário são sorteados entre os que passam nos filtros, por amostragem por rejeição.
 
 ---
 

@@ -42,3 +42,15 @@ func (c *Cliente) Executar(ctx context.Context, query string, params map[string]
 		neo4j.EagerResultTransformer,
 		neo4j.ExecuteQueryWithDatabase(c.banco))
 }
+
+func (c *Cliente) ExecutarAutoCommit(ctx context.Context, query string, params map[string]any) error {
+	sessao := c.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: c.banco})
+	defer sessao.Close(ctx)
+
+	resultado, err := sessao.Run(ctx, query, params)
+	if err != nil {
+		return err
+	}
+	_, err = resultado.Consume(ctx)
+	return err
+}

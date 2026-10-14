@@ -62,7 +62,7 @@ Respondida apenas por quem marcou ARK na G11.
 | A03 | Qual modo? | PvE, PvP, Ambos | Filtro (PvE e PvP são incompatíveis) | Formulário |
 | A04 | Qual tipo de servidor? | Oficial, Não oficial rates baixas, Não oficial rates altas, Tanto faz | Score | Formulário |
 | A05 | Quantas horas você tem no jogo? | <100, 100–500, 500–2000, 2000+ | Score (nível) | Steam |
-| A06 | Quais são suas funções? (até 2, indicando a principal) | Criador/domador, Construtor, Coletor, PvP, Explorador | Grafo (complementaridade) | Formulário |
+| A06 | Quais são suas funções? (até 2, indicando a principal) | Breeder/domador, Builder, Coletor, PvP, Explorador | Grafo (complementaridade) | Formulário |
 | A07 | Qual a sua intensidade? | 1 (casual) a 5 (competitivo) | Score | Formulário |
 | A08 | Qual tamanho de tribo você procura? | 2–3, 4–6, 7+, Tanto faz | Score | Formulário |
 | A09 | Qual nível você prefere no parceiro? | Parecido, Mais experiente, Tanto faz | Score (assimétrico) | Formulário |
@@ -80,7 +80,7 @@ Respondida apenas por quem marcou Rust na G11.
 | R03 | Qual limite de grupo você prefere? | Solo/Duo, Trio, Quad, Sem limite | Score | Formulário |
 | R04 | Você joga no dia do wipe? | Sempre, Às vezes, Raramente | Score | Formulário |
 | R05 | Quantas horas você tem no jogo? | <100, 100–500, 500–2000, 2000+ | Score (nível) | Steam |
-| R06 | Quais são suas funções? (até 2, indicando a principal) | Construtor, Coletor, PvP/roamer, Raider, Eletricista | Grafo (complementaridade) | Formulário |
+| R06 | Quais são suas funções? (até 2, indicando a principal) | Builder, Coletor, PvP/roamer, Raider, Eletricista | Grafo (complementaridade) | Formulário |
 | R07 | Qual a sua intensidade? | 1 (casual) a 5 (competitivo) | Score | Formulário |
 | R08 | Qual nível você prefere no parceiro? | Parecido, Mais experiente, Tanto faz | Score (assimétrico) | Formulário |
 

@@ -79,19 +79,26 @@ O `bit` permite montar, no Go, um bitmask de 28 bits com a disponibilidade do us
 
 | Propriedade | Tipo | Exemplo |
 |---|---|---|
-| `id` | string | `ark:criador`, `lol:suporte` |
+| `id` | string | `ark:breeder`, `lol:suporte` |
 | `jogo` | string | `ark` |
-| `nome` | string | `Criador/domador` |
+| `nome` | string | `Breeder/domador` |
 
 | Jogo | Funções |
 |---|---|
-| ARK | `ark:criador`, `ark:construtor`, `ark:coletor`, `ark:pvp`, `ark:explorador` |
-| Rust | `rust:construtor`, `rust:coletor`, `rust:pvp`, `rust:raider`, `rust:eletricista` |
+| ARK | `ark:breeder`, `ark:builder`, `ark:coletor`, `ark:pvp`, `ark:explorador` |
+| Rust | `rust:builder`, `rust:coletor`, `rust:pvp`, `rust:raider`, `rust:eletricista` |
 | LoL | `lol:top`, `lol:jungle`, `lol:mid`, `lol:adc`, `lol:suporte`, `lol:preencher` |
 
 ---
 
 ## Relações
+
+### Normalização do nível
+
+| Jogo | Regra |
+|---|---|
+| ARK e Rust | `<100` = 0,125; `100-500` = 0,375; `500-2000` = 0,625; `2000+` = 0,875 |
+| LoL | Sem ranked = 0; demais = (elo + 1) / 10, de Ferro (0,1) a Desafiante (1,0) |
 
 ### `(Usuario)-[:JOGA]->(Jogo)`
 
@@ -104,6 +111,7 @@ Guarda tudo que depende do jogo. O Neo4j aceita relações do mesmo tipo com pro
 | `intensidade` | int | A07 / R07 / L05 | 1 a 5 |
 | `nivel` | float | A05 / R05 / L01 | Normalizado de 0 a 1 |
 | `nivelDesejado` | string | A09 / R08 / L06 | `parecido`, `mais_experiente`, `tanto_faz` |
+| `personaJogo` | string | Gerador | **Somente dados mock.** Persona do usuário naquele jogo (no multi-jogo, a persona copiada). Nunca usada pelo motor |
 
 **Propriedades do ARK**
 
@@ -182,19 +190,19 @@ Os valores são **premissas heurísticas** e devem ser declarados como tal na mo
 
 ### ARK
 
-| | Criador | Construtor | Coletor | PvP | Explorador |
+| | Breeder | Builder | Coletor | PvP | Explorador |
 |---|---|---|---|---|---|
-| **Criador** | 0,4 | 0,9 | 0,8 | 0,8 | 0,7 |
-| **Construtor** | | 0,4 | 0,9 | 0,8 | 0,6 |
+| **Breeder** | 0,4 | 0,9 | 0,8 | 0,8 | 0,7 |
+| **Builder** | | 0,4 | 0,9 | 0,8 | 0,6 |
 | **Coletor** | | | 0,6 | 0,7 | 0,6 |
 | **PvP** | | | | 0,8 | 0,7 |
 | **Explorador** | | | | | 0,7 |
 
 ### Rust
 
-| | Construtor | Coletor | PvP | Raider | Eletricista |
+| | Builder | Coletor | PvP | Raider | Eletricista |
 |---|---|---|---|---|---|
-| **Construtor** | 0,4 | 0,9 | 0,8 | 0,7 | 0,8 |
+| **Builder** | 0,4 | 0,9 | 0,8 | 0,7 | 0,8 |
 | **Coletor** | | 0,6 | 0,8 | 0,7 | 0,7 |
 | **PvP** | | | 0,8 | 0,9 | 0,6 |
 | **Raider** | | | | 0,6 | 0,7 |
@@ -247,12 +255,12 @@ SET h.dia = dia, h.periodo = periodo, h.bit = d * 4 + p;
 
 ```cypher
 UNWIND [
-  {id: 'ark:criador',      jogo: 'ark',  nome: 'Criador/domador'},
-  {id: 'ark:construtor',   jogo: 'ark',  nome: 'Construtor'},
+  {id: 'ark:breeder',      jogo: 'ark',  nome: 'Breeder/domador'},
+  {id: 'ark:builder',   jogo: 'ark',  nome: 'Builder'},
   {id: 'ark:coletor',      jogo: 'ark',  nome: 'Coletor'},
   {id: 'ark:pvp',          jogo: 'ark',  nome: 'PvP'},
   {id: 'ark:explorador',   jogo: 'ark',  nome: 'Explorador'},
-  {id: 'rust:construtor',  jogo: 'rust', nome: 'Construtor'},
+  {id: 'rust:builder',  jogo: 'rust', nome: 'Builder'},
   {id: 'rust:coletor',     jogo: 'rust', nome: 'Coletor'},
   {id: 'rust:pvp',         jogo: 'rust', nome: 'PvP/roamer'},
   {id: 'rust:raider',      jogo: 'rust', nome: 'Raider'},
@@ -273,15 +281,15 @@ SET f.jogo = funcao.jogo, f.nome = funcao.nome;
 ```cypher
 UNWIND [
   // ARK
-  {a: 'ark:criador',    b: 'ark:criador',    valor: 0.4},
-  {a: 'ark:criador',    b: 'ark:construtor', valor: 0.9},
-  {a: 'ark:criador',    b: 'ark:coletor',    valor: 0.8},
-  {a: 'ark:criador',    b: 'ark:pvp',        valor: 0.8},
-  {a: 'ark:criador',    b: 'ark:explorador', valor: 0.7},
-  {a: 'ark:construtor', b: 'ark:construtor', valor: 0.4},
-  {a: 'ark:construtor', b: 'ark:coletor',    valor: 0.9},
-  {a: 'ark:construtor', b: 'ark:pvp',        valor: 0.8},
-  {a: 'ark:construtor', b: 'ark:explorador', valor: 0.6},
+  {a: 'ark:breeder',    b: 'ark:breeder',    valor: 0.4},
+  {a: 'ark:breeder',    b: 'ark:builder', valor: 0.9},
+  {a: 'ark:breeder',    b: 'ark:coletor',    valor: 0.8},
+  {a: 'ark:breeder',    b: 'ark:pvp',        valor: 0.8},
+  {a: 'ark:breeder',    b: 'ark:explorador', valor: 0.7},
+  {a: 'ark:builder', b: 'ark:builder', valor: 0.4},
+  {a: 'ark:builder', b: 'ark:coletor',    valor: 0.9},
+  {a: 'ark:builder', b: 'ark:pvp',        valor: 0.8},
+  {a: 'ark:builder', b: 'ark:explorador', valor: 0.6},
   {a: 'ark:coletor',    b: 'ark:coletor',    valor: 0.6},
   {a: 'ark:coletor',    b: 'ark:pvp',        valor: 0.7},
   {a: 'ark:coletor',    b: 'ark:explorador', valor: 0.6},
@@ -289,11 +297,11 @@ UNWIND [
   {a: 'ark:pvp',        b: 'ark:explorador', valor: 0.7},
   {a: 'ark:explorador', b: 'ark:explorador', valor: 0.7},
   // Rust
-  {a: 'rust:construtor',  b: 'rust:construtor',  valor: 0.4},
-  {a: 'rust:construtor',  b: 'rust:coletor',     valor: 0.9},
-  {a: 'rust:construtor',  b: 'rust:pvp',         valor: 0.8},
-  {a: 'rust:construtor',  b: 'rust:raider',      valor: 0.7},
-  {a: 'rust:construtor',  b: 'rust:eletricista', valor: 0.8},
+  {a: 'rust:builder',  b: 'rust:builder',  valor: 0.4},
+  {a: 'rust:builder',  b: 'rust:coletor',     valor: 0.9},
+  {a: 'rust:builder',  b: 'rust:pvp',         valor: 0.8},
+  {a: 'rust:builder',  b: 'rust:raider',      valor: 0.7},
+  {a: 'rust:builder',  b: 'rust:eletricista', valor: 0.8},
   {a: 'rust:coletor',     b: 'rust:coletor',     valor: 0.6},
   {a: 'rust:coletor',     b: 'rust:pvp',         valor: 0.8},
   {a: 'rust:coletor',     b: 'rust:raider',      valor: 0.7},

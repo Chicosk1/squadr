@@ -200,3 +200,56 @@ Registrar cada decisão importante do projeto com contexto, opções considerada
 - **Contexto:** o plugin GDS só será usado na Fase 8 (opcional).
 - **Decisão:** não instalar APOC nem GDS agora.
 - **Motivo:** o download na inicialização pode falhar e atrasa o startup; será adicionado se a fase opcional for executada.
+
+---
+
+## Fase 3 — Domínio e dados mock
+
+## D-021 — Dados mock em Go, reproduzíveis por semente
+
+- **Status:** Aceita
+- **Contexto:** a avaliação exige que os experimentos possam ser repetidos.
+- **Opções consideradas:** biblioteca de dados falsos (`gofakeit`); gerador próprio com `math/rand/v2`.
+- **Decisão:** gerador próprio, com PCG e semente explícita (padrão 42). Apelidos a partir de listas próprias.
+- **Motivo:** mesma semente gera exatamente os mesmos dados; os apelidos não influenciam o motor, então uma dependência externa não se justifica.
+- **Consequências:** testes automatizados garantem a determinismo; nunca iterar sobre `map` no gerador.
+
+## D-022 — Personas como dados, não código
+
+- **Status:** Aceita
+- **Decisão:** cada persona é uma struct (`Persona` + `ModeloJogo`) em `internal/seed/personas.go`; o gerador é genérico.
+- **Motivo:** ajustar uma persona (ex.: após feedback do orientador) exige alterar uma linha, sem tocar na lógica.
+
+## D-023 — Ruído e outliers apenas em atributos flexíveis
+
+- **Status:** Aceita
+- **Contexto:** outliers em atributos dos filtros rígidos gerariam perfis impossíveis de combinar.
+- **Decisão:** outliers só alteram intensidade, horários, tolerância, nível desejado, compromisso e pesos.
+- **Consequências:** o gabarito permanece válido para todos os usuários.
+
+## D-024 — Filtros rígidos reimplementados em Go como oráculo
+
+- **Status:** Aceita
+- **Contexto:** a avaliação precisa saber quais candidatos são válidos sem depender da query sob teste.
+- **Decisão:** `PassaFiltros` e `Grau` em `internal/seed/gabarito.go`, independentes da query Cypher da Fase 4.
+- **Consequências:** na Fase 4, as duas implementações são comparadas; divergência indica bug em uma delas. Crossplay e diferença de elo no duo são premissas documentadas.
+
+## D-025 — `personaJogo` na relação JOGA (somente mock)
+
+- **Status:** Aceita
+- **Contexto:** no multi-jogo, a persona efetiva muda de jogo para jogo.
+- **Decisão:** guardar `personaJogo` na relação `JOGA`, além de `persona` no usuário.
+- **Consequências:** a avaliação pode reconstruir o gabarito a partir do grafo. O motor nunca lê esses campos.
+
+## D-026 — Likes por amostragem por rejeição, com probabilidade por grau
+
+- **Status:** Aceita
+- **Decisão:** de 20 a 50 candidatos por usuário e jogo, sorteados entre os que passam nos filtros; probabilidade de like de 70% (grau 2), 45% (grau 1) e 15% (grau 0).
+- **Motivo:** a amostragem evita comparar cada usuário com todos os outros (custo quadrático).
+- **Consequências (ameaça à validade):** as curtidas derivam do gabarito usado na avaliação, o que favorece o sinal social. A ablação da Fase 7 inclui uma versão sem esse sinal, e a limitação é declarada na monografia.
+
+## D-027 — Carga em lote com UNWIND
+
+- **Status:** Aceita
+- **Decisão:** lotes de 2.000 usuários e 5.000 interações; limpeza com `CALL ... IN TRANSACTIONS` em sessão auto-commit.
+- **Motivo:** um comando por registro seria ordens de grandeza mais lento; apagar tudo em uma transação estoura memória.
