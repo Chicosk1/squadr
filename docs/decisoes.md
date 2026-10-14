@@ -157,3 +157,46 @@ Registrar cada decisão importante do projeto com contexto, opções considerada
 - **Decisão:** `S(A,B) = 2 · s(A→B) · s(B→A) / (s(A→B) + s(B→A))`.
 - **Motivo:** penaliza matches desequilibrados sem ser tão rígida quanto o mínimo. Base teórica: sistemas de recomendação recíproca (Pizzato et al., 2010, RECON).
 - **Consequências:** o score unilateral precisa ser assimétrico (pesos e preferências individuais) para que a reciprocidade tenha efeito.
+
+---
+
+## Fase 2 — Infraestrutura
+
+## D-016 — Neo4j Community em Docker Compose
+
+- **Status:** Aceita
+- **Contexto:** é preciso um ambiente de banco reproduzível, sem instalação manual.
+- **Opções consideradas:** instalação local; Neo4j Aura (nuvem); Docker Compose.
+- **Decisão:** imagem `neo4j:5.26-community` via Docker Compose, com limites de memória explícitos.
+- **Motivo:** reprodutibilidade (a banca pode subir o ambiente com um comando), sem custo e sem dependência de internet em tempo de execução.
+- **Consequências:** a edição Community suporta apenas um banco de dados (`neo4j`); não afeta o escopo do projeto.
+
+## D-017 — Configuração por variáveis de ambiente com arquivo `.env`
+
+- **Status:** Aceita
+- **Contexto:** credenciais e portas não devem ficar no código nem no Git.
+- **Decisão:** variáveis de ambiente, com `.env` local (ignorado pelo Git) e `.env.example` versionado; leitura com `godotenv`.
+- **Motivo:** prática padrão (12-factor); `godotenv` evita configurar variáveis manualmente no Windows.
+- **Consequências:** uma dependência externa pequena.
+
+## D-018 — Scripts Cypher versionados e idempotentes
+
+- **Status:** Aceita
+- **Contexto:** o grafo de referência (jogos, horários, funções, complementaridade) precisa ser recriável a qualquer momento.
+- **Decisão:** scripts em `scripts/*.cypher` usando `MERGE`, executados por `cmd/migrar`, que ao final verifica as contagens esperadas.
+- **Motivo:** o ambiente pode ser recriado do zero com um comando, e erros de carga são detectados imediatamente.
+- **Consequências:** se o modelo mudar, os scripts são a única fonte de verdade a atualizar.
+
+## D-019 — Driver único compartilhado
+
+- **Status:** Aceita
+- **Contexto:** o driver do Neo4j mantém um pool de conexões.
+- **Decisão:** criar um único `Cliente` na inicialização e compartilhá-lo; nunca criar um por requisição.
+- **Motivo:** evita o custo de abrir conexões repetidamente, que distorceria os benchmarks da Fase 7.
+
+## D-020 — Graph Data Science adiado
+
+- **Status:** Aceita
+- **Contexto:** o plugin GDS só será usado na Fase 8 (opcional).
+- **Decisão:** não instalar APOC nem GDS agora.
+- **Motivo:** o download na inicialização pode falhar e atrasa o startup; será adicionado se a fase opcional for executada.
