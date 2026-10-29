@@ -253,3 +253,51 @@ Registrar cada decisão importante do projeto com contexto, opções considerada
 - **Status:** Aceita
 - **Decisão:** lotes de 2.000 usuários e 5.000 interações; limpeza com `CALL ... IN TRANSACTIONS` em sessão auto-commit.
 - **Motivo:** um comando por registro seria ordens de grandeza mais lento; apagar tudo em uma transação estoura memória.
+
+---
+
+## Fase 4 — Geração de candidatos
+
+## D-028 — Mínimo de horários em comum como filtro configurável
+
+- **Status:** Aceita
+- **Contexto:** o questionário classificava o horário como "Grafo + Score". Quem não compartilha nenhuma faixa de horário nunca poderá jogar junto.
+- **Opções consideradas:** apenas score; filtro fixo; filtro configurável.
+- **Decisão:** parâmetro `MinHorarios` (padrão 1 nas opções padrão). A verificação contra o oráculo usa 0.
+- **Motivo:** descarta candidatos inúteis cedo e reduz o trabalho do scoring.
+- **Consequências:** o horário passa a ser filtro e score; o oráculo `PassaFiltros` não o inclui, e por isso a verificação usa `MinHorarios` 0.
+
+## D-029 — Candidatos em duas consultas
+
+- **Status:** Aceita
+- **Contexto:** o sinal social (filtragem colaborativa por travessia) tem custo e papel diferentes dos filtros.
+- **Decisão:** (1) filtros rígidos, horários e complementaridade, com corte em 300 candidatos ordenados por horários em comum e complemento; (2) sinal social calculado apenas para os candidatos escolhidos.
+- **Motivo:** cada consulta pode ser medida separadamente, a segunda custa menos e a ablação "sem sinal social" é desligar uma opção.
+- **Consequências:** o sinal social não resgata candidatos cortados na primeira etapa. A Fase 7 mede quanto o corte prejudica.
+
+## D-030 — Filtros por jogo como fragmentos Cypher fixos
+
+- **Status:** Aceita
+- **Decisão:** um fragmento de Cypher por jogo, escolhido por um mapa no código Go. A diferença máxima de elo (`MaxDiffEloDuo`) vive em `domain` e é a mesma no oráculo e na consulta.
+- **Motivo:** cada jogo tem seu próprio plano de consulta e nada vindo do usuário entra no texto da query (sem injeção).
+
+## D-031 — Verificação diferencial contra o oráculo
+
+- **Status:** Aceita
+- **Contexto:** a consulta Cypher e o oráculo Go implementam as mesmas regras de forma independente.
+- **Decisão:** `cmd/verificar` regenera os dados pela semente e compara: ida e volta de perfis, conjunto de candidatos, horários em comum, sinal social e ordenação.
+- **Consequências:** divergência indica bug em uma das implementações. A complementaridade ainda não é verificada: será quando a matriz existir em Go (Fase 5).
+
+## D-032 — Resultados do PROFILE (preencher)
+
+- **Status:** Proposta
+- **Medições:** (cole a tabela do Passo 7.3, o resultado do experimento A e o do B)
+- **Decisão sobre o índice `usuario_regiao`:** (manter ou remover, e por quê)
+
+## D-033 — Ids de funções no vocabulário da comunidade (inglês)
+
+- **Status:** Aceita
+- **Contexto:** os ids de funções foram definidos em português na Fase 1, mas os jogadores usam termos em inglês (*breeder*, *builder*, *gatherer*). Durante a Fase 4, o gerador passou a produzir ids em inglês enquanto o grafo tinha os ids em português; a relação EXERCE deixou de ser criada sem nenhum erro, porque o MATCH da carga não encontrou o nó.
+- **Opções consideradas:** ids em português (alinhar o Go ao grafo); ids em inglês (alinhar o grafo ao Go).
+- **Decisão:** ids em inglês (`ark:breeder`, `rust:electrician`, `lol:support`...), que é o vocabulário de quem joga. Rótulos do formulário e nomes de persona permanecem em português.
+- **Consequências:** `scripts/referencia.cypher` e `modelo-grafo.md` atualizados. `Cliente.ValidarFuncoes` faz o `seed` falhar antes de apagar a base quando uma função não existe no grafo. O erro foi detectado pela verificação por ida e volta do `cmd/verificar`.

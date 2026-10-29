@@ -31,7 +31,7 @@ Respondida por todos os usuários.
 | G03 | Com quais faixas etárias você aceita jogar? | Múltipla escolha (18–24, 25–34, 35+) | Filtro recíproco | Formulário |
 | G04 | Qual a sua região? | América do Sul, América do Norte, Europa | Filtro | Formulário / Riot |
 | G05 | Quais idiomas você fala? | Português, Inglês, Espanhol (múltipla escolha) | Filtro (pelo menos 1 em comum) | Formulário |
-| G06 | Quando você costuma jogar? | Grade 7 dias × 4 períodos | Grafo + Score | Formulário / histórico de partidas da Riot |
+| G06 | Quando você costuma jogar? | Grade 7 dias × 4 períodos | Filtro (mínimo de faixas em comum) + Grafo + Score | Formulário / histórico de partidas da Riot |
 | G07 | Você usa chat de voz? | Sim / Às vezes / Não | Score | Formulário |
 | G08 | Você exige que o parceiro use voz? | Sim / Não | Score (assimétrico) | Formulário |
 | G09 | Quanto você tolera trash talk? | 1 (nada) a 5 (normal pra mim) | Score | Formulário |

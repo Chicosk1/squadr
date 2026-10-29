@@ -16,9 +16,9 @@ A recomendação é sempre contextualizada por jogo: o motor responde "quem é u
 | Fase | Descrição | Situação |
 |---|---|---|
 | 1 | Modelagem (questionário, grafo, personas) | Concluída |
-| 2 | Infraestrutura e esqueleto do projeto | Em andamento |
-| 3 | Domínio e gerador de dados mock | Pendente |
-| 4 | Geração de candidatos no grafo | Pendente |
+| 2 | Infraestrutura e esqueleto do projeto | Concluída |
+| 3 | Domínio e gerador de dados mock | Concluída |
+| 4 | Geração de candidatos no grafo | Em andamento |
 | 5 | Scoring e reciprocidade | Pendente |
 | 6 | API e formulário | Pendente |
 | 7 | Avaliação e benchmarks | Pendente |
@@ -122,6 +122,7 @@ docker compose stop          # para o banco, mantendo os dados
 docker compose down -v       # apaga o banco e o volume (recomeça do zero)
 go test ./...                # roda os testes
 go test -bench=. ./...       # roda os benchmarks
+go run ./cmd/verificar       # confere o grafo contra o oráculo (use os mesmos -usuarios e -semente do seed)
 ```
 
 ## Tecnologias

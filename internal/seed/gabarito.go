@@ -6,8 +6,6 @@ import (
 	"github.com/Chicosk1/squadr/internal/domain"
 )
 
-const MaxDiffEloDuo = 2
-
 const PersonaMulti = "MULTI-CASUAL"
 
 func PassaFiltros(a, b domain.Perfil, jogo domain.Jogo) bool {
@@ -80,7 +78,7 @@ func eloCompativel(a, b int) bool {
 	if diff < 0 {
 		diff = -diff
 	}
-	return diff <= MaxDiffEloDuo
+	return diff <= domain.MaxDiffEloDuo
 }
 
 // ---------- Gabarito de relevância ----------

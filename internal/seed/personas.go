@@ -140,7 +140,7 @@ var arkRaider = ModeloJogo{
 var arkBreeder = ModeloJogo{
 	Persona: "ARK-PVE-BREEDER", Jogo: domain.ARK,
 	Intensidade: entre(1, 2), NivelDesejado: unico("tanto_faz"),
-	FuncaoPrincipal: "ark:breeder", FuncaoSecundaria: "ark:coletor",
+	FuncaoPrincipal: "ark:breeder", FuncaoSecundaria: "ark:gatherer",
 	Horas: unico("500-2000"), Versao: unico("asa"), Plataforma: unico("pc_steam"),
 	Modo: unico("pve"), Servidor: unico("rates_altas"), TamanhoTribo: unico("2-3"),
 }
@@ -148,7 +148,7 @@ var arkBreeder = ModeloJogo{
 var arkBuilder = ModeloJogo{
 	Persona: "ARK-PVE-BUILDER", Jogo: domain.ARK,
 	Intensidade: entre(2, 3), NivelDesejado: unico("tanto_faz"),
-	FuncaoPrincipal: "ark:builder", FuncaoSecundaria: "ark:coletor",
+	FuncaoPrincipal: "ark:builder", FuncaoSecundaria: "ark:gatherer",
 	Horas: unico("100-500"), Versao: Opcoes{{"asa", 70}, {"ase", 30}}, Plataforma: unico("pc_steam"),
 	Modo: unico("pve"), Servidor: unico("rates_baixas"), TamanhoTribo: unico("4-6"),
 }
@@ -166,7 +166,7 @@ var rustGrinder = ModeloJogo{
 var rustCasual = ModeloJogo{
 	Persona: "RUST-CASUAL", Jogo: domain.Rust,
 	Intensidade: exato(2), NivelDesejado: unico("tanto_faz"),
-	FuncaoPrincipal: "rust:builder", FuncaoSecundaria: "rust:eletricista",
+	FuncaoPrincipal: "rust:builder", FuncaoSecundaria: "rust:electrician",
 	Horas: unico("500-2000"), Versao: unico("pc"), Servidor: unico("comunitario"),
 	LimiteGrupo: unico("solo_duo"), Wipe: unico("as_vezes"),
 }
@@ -174,7 +174,7 @@ var rustCasual = ModeloJogo{
 var rustAprendiz = ModeloJogo{
 	Persona: "RUST-APRENDIZ", Jogo: domain.Rust,
 	Intensidade: exato(3), NivelDesejado: unico("mais_experiente"),
-	FuncaoPrincipal: "rust:coletor", FuncaoSecundaria: "rust:builder",
+	FuncaoPrincipal: "rust:gatherer", FuncaoSecundaria: "rust:builder",
 	Horas: unico("<100"), Versao: Opcoes{{"pc", 85}, {"console", 15}},
 	Servidor:    igual("comunitario", "modificado"),
 	LimiteGrupo: igual("solo_duo", "trio"), Wipe: unico("as_vezes"),
@@ -185,7 +185,7 @@ var rustAprendiz = ModeloJogo{
 var lolSuporte = ModeloJogo{
 	Persona: "LOL-SUPORTE", Jogo: domain.LoL,
 	Intensidade: exato(4), NivelDesejado: unico("parecido"),
-	FuncaoPrincipal: "lol:suporte", FuncaoSecundaria: "lol:mid",
+	FuncaoPrincipal: "lol:support", FuncaoSecundaria: "lol:mid",
 	Elo: entre(3, 4), Filas: []string{"solo_duo", "flex"},
 }
 
@@ -199,7 +199,7 @@ var lolAdc = ModeloJogo{
 var lolAram = ModeloJogo{
 	Persona: "LOL-ARAM", Jogo: domain.LoL,
 	Intensidade: entre(1, 2), NivelDesejado: unico("tanto_faz"),
-	FuncaoPrincipal: "lol:preencher",
+	FuncaoPrincipal: "lol:fill",
 	Elo:             entre(-1, 2), Filas: []string{"aram", "normal", "clash"},
 }
 
