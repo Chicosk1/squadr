@@ -15,17 +15,20 @@ A recomendação é sempre contextualizada por jogo: o motor responde "quem é u
 
 | Fase | Descrição | Situação |
 |---|---|---|
+| 0 | Planejamento (escopo e arquitetura, D-011 a D-015) | Concluída |
 | 1 | Modelagem (questionário, grafo, personas) | Concluída |
 | 2 | Infraestrutura e esqueleto do projeto | Concluída |
 | 3 | Domínio e gerador de dados mock | Concluída |
-| 4 | Geração de candidatos no grafo | Em andamento |
-| 5 | Scoring e reciprocidade | Pendente |
+| 4 | Geração de candidatos no grafo | Concluída |
+| 5 | Scoring e reciprocidade | Concluída |
 | 6 | API e formulário | Pendente |
 | 7 | Avaliação e benchmarks | Pendente |
+| 8 | Extras opcionais (Graph Data Science, ajuste de pesos) | Pendente |
+| 9 | Fechamento (monografia e apresentação) | Pendente |
 
 ## Pré-requisitos
 
-- [Go](https://go.dev/dl/) 1.22 ou superior
+- [Go](https://go.dev/dl/) 1.26.5 ou superior
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (no Windows, com WSL2)
 - [Git](https://git-scm.com/)
 
@@ -91,8 +94,10 @@ No PowerShell, use `curl.exe` no lugar de `curl`. A resposta esperada é `{"banc
 squadr/
 ├── cmd/
 │   ├── api/          # servidor HTTP
+│   ├── avaliar/      # Precision@K do motor contra o gabarito das personas
 │   ├── migrar/       # cria constraints e carrega dados de referência
-│   └── seed/         # gerador de dados mock
+│   ├── seed/         # gerador de dados mock (apaga e recarrega os usuários)
+│   └── verificar/    # compara o grafo com o oráculo em Go
 ├── internal/
 │   ├── config/       # leitura de variáveis de ambiente
 │   ├── graph/        # acesso ao Neo4j
@@ -121,8 +126,8 @@ Toda a documentação de projeto está em [`docs/`](docs/):
 docker compose stop          # para o banco, mantendo os dados
 docker compose down -v       # apaga o banco e o volume (recomeça do zero)
 go test ./...                # roda os testes
-go test -bench=. ./...       # roda os benchmarks
 go run ./cmd/verificar       # confere o grafo contra o oráculo (use os mesmos -usuarios e -semente do seed)
+go run ./cmd/avaliar         # Precision@10 do motor e da ordem do grafo (mesmos -usuarios e -semente do seed)
 ```
 
 ## Tecnologias

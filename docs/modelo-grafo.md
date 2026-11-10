@@ -1,6 +1,6 @@
 # Modelo do Grafo
 
-> **Fase:** 1 — Modelagem
+> **Fases:** 1 — Modelagem; 4 — Geração de candidatos (filtros por jogo e sinais)
 > **Status:** Proposta (aguardando validação do orientador)
 > **Banco:** Neo4j 5.26 Community
 
@@ -351,10 +351,13 @@ CREATE CONSTRAINT usuario_id IF NOT EXISTS FOR (u:Usuario) REQUIRE u.id IS UNIQU
 CREATE CONSTRAINT jogo_id    IF NOT EXISTS FOR (j:Jogo)    REQUIRE j.id IS UNIQUE;
 CREATE CONSTRAINT horario_id IF NOT EXISTS FOR (h:Horario) REQUIRE h.id IS UNIQUE;
 CREATE CONSTRAINT funcao_id  IF NOT EXISTS FOR (f:Funcao)  REQUIRE f.id IS UNIQUE;
-CREATE INDEX usuario_regiao  IF NOT EXISTS FOR (u:Usuario) ON (u.regiao);
+// usuario_regiao foi removido (D-032): o planejador nunca o usou e, forçado, piorou a consulta
+DROP INDEX usuario_regiao IF EXISTS;
 ```
 
 Sem a constraint em `Usuario.id`, toda busca por usuário percorre o banco inteiro.
+
+Não há índice em `Usuario.regiao`. A consulta de candidatos parte do usuário (pela constraint de `id`) e expande pelo nó `Jogo`. A região é só um filtro sobre os jogadores do jogo, e o índice nunca foi usado pelo planejador (D-032).
 
 ---
 

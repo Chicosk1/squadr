@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/Chicosk1/squadr/internal/domain"
@@ -50,6 +51,33 @@ const queryRecusas = `
 	MATCH (a:Usuario {id: x.de})
 	MATCH (b:Usuario {id: x.para})
 	CREATE (a)-[:RECUSOU {jogo: x.jogo, em: datetime(x.em)}]->(b)`
+
+const queryFuncoesAusentes = `
+	UNWIND $ids AS id
+	WITH id WHERE NOT EXISTS { MATCH (:Funcao {id: id}) }
+	RETURN collect(id) AS ausentes`
+
+// ValidarFuncoes falha se algum id não existir como nó Funcao. Na carga, um id
+// ausente não gera erro: o MATCH não encontra o nó e a relação EXERCE não é criada (D-033).
+func (c *Cliente) ValidarFuncoes(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	res, err := c.Executar(ctx, queryFuncoesAusentes, map[string]any{"ids": ids})
+	if err != nil {
+		return fmt.Errorf("validando funções: %w", err)
+	}
+	if len(res.Records) != 1 {
+		return fmt.Errorf("validando funções: %d registros, esperado 1", len(res.Records))
+	}
+	ausentes := lista(res.Records[0].AsMap(), "ausentes")
+	if len(ausentes) > 0 {
+		slices.Sort(ausentes)
+		return fmt.Errorf("%d de %d ids de função não existem no grafo: %q (rode go run ./cmd/migrar ou corrija os ids)",
+			len(ausentes), len(ids), ausentes)
+	}
+	return nil
+}
 
 func (c *Cliente) LimparUsuarios(ctx context.Context) error {
 	return c.ExecutarAutoCommit(ctx, `

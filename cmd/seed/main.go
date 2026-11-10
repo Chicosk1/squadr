@@ -5,9 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/Chicosk1/squadr/internal/config"
+	"github.com/Chicosk1/squadr/internal/domain"
 	"github.com/Chicosk1/squadr/internal/graph"
 	"github.com/Chicosk1/squadr/internal/seed"
 )
@@ -50,6 +52,12 @@ func executar() error {
 		log.Printf("  %-20s %d", persona.Nome, contagem[persona.Nome])
 	}
 
+	ids := idsDeFuncoes(perfis)
+	if err := cliente.ValidarFuncoes(ctx, ids); err != nil {
+		return fmt.Errorf("nada foi apagado: %w", err)
+	}
+	log.Printf("funções validadas: os %d ids usados pelos perfis existem no grafo", len(ids))
+
 	log.Println("apagando usuários anteriores (os dados de referência são mantidos)...")
 	if err := cliente.LimparUsuarios(ctx); err != nil {
 		return err
@@ -64,4 +72,17 @@ func executar() error {
 	}
 	log.Printf("carga concluída em %s", time.Since(inicioCarga).Round(time.Millisecond))
 	return nil
+}
+
+// idsDeFuncoes devolve os ids distintos que a carga vai procurar no grafo. Eles vêm
+// dos perfis gerados, e não só de domain.Funcoes, porque personas.go escreve os ids à mão.
+func idsDeFuncoes(perfis []domain.Perfil) []string {
+	var ids []string
+	for _, p := range perfis {
+		for _, pj := range p.Jogos {
+			ids = append(ids, pj.FuncaoPrincipal, pj.FuncaoSecundaria)
+		}
+	}
+	slices.Sort(ids)
+	return slices.Compact(ids)
 }

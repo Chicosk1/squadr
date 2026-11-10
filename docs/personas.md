@@ -154,7 +154,7 @@ A geração usa **semente fixa**, para que todos os experimentos sejam reproduz�
 
 ## Gabarito de relevância
 
-Usado para calcular Precision@K e NDCG@K. **Só conta como relevante o candidato que passa em todos os filtros rígidos** (região, idioma, faixa etária, versão, modo, filas).
+Usado para calcular Precision@K e NDCG@K. **Só conta como relevante o candidato que passa em todos os filtros rígidos** (região, idioma, faixa etária, versão, plataforma, modo, filas).
 
 | Grau | Significado | Pares |
 |---|---|---|

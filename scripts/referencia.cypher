@@ -17,20 +17,20 @@ SET h.dia = dia, h.periodo = periodo, h.bit = d * 4 + p;
 UNWIND [
   {id: 'ark:breeder',      jogo: 'ark',  nome: 'Breeder/domador'},
   {id: 'ark:builder',   jogo: 'ark',  nome: 'Builder'},
-  {id: 'ark:gatherer',      jogo: 'ark',  nome: 'Gatherer'},
+  {id: 'ark:gatherer',      jogo: 'ark',  nome: 'Coletor'},
   {id: 'ark:pvp',          jogo: 'ark',  nome: 'PvP'},
-  {id: 'ark:explorer',   jogo: 'ark',  nome: 'Explorer'},
+  {id: 'ark:explorer',   jogo: 'ark',  nome: 'Explorador'},
   {id: 'rust:builder',  jogo: 'rust', nome: 'Builder'},
-  {id: 'rust:gatherer',     jogo: 'rust', nome: 'Gatherer'},
+  {id: 'rust:gatherer',     jogo: 'rust', nome: 'Coletor'},
   {id: 'rust:pvp',         jogo: 'rust', nome: 'PvP/roamer'},
   {id: 'rust:raider',      jogo: 'rust', nome: 'Raider'},
-  {id: 'rust:electrician', jogo: 'rust', nome: 'Electrician'},
+  {id: 'rust:electrician', jogo: 'rust', nome: 'Eletricista'},
   {id: 'lol:top',          jogo: 'lol',  nome: 'Top'},
   {id: 'lol:jungle',       jogo: 'lol',  nome: 'Jungle'},
   {id: 'lol:mid',          jogo: 'lol',  nome: 'Mid'},
   {id: 'lol:adc',          jogo: 'lol',  nome: 'ADC'},
-  {id: 'lol:support',      jogo: 'lol',  nome: 'Support'},
-  {id: 'lol:fill',    jogo: 'lol',  nome: 'Fill'}
+  {id: 'lol:support',      jogo: 'lol',  nome: 'Suporte'},
+  {id: 'lol:fill',    jogo: 'lol',  nome: 'Preencher'}
 ] AS funcao
 MERGE (f:Funcao {id: funcao.id})
 SET f.jogo = funcao.jogo, f.nome = funcao.nome;

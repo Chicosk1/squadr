@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"math/bits"
 	"reflect"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"github.com/Chicosk1/squadr/internal/config"
 	"github.com/Chicosk1/squadr/internal/domain"
 	"github.com/Chicosk1/squadr/internal/graph"
+	"github.com/Chicosk1/squadr/internal/matching"
 	"github.com/Chicosk1/squadr/internal/seed"
 )
 
@@ -133,6 +135,7 @@ type verificador struct {
 	porID     map[string]domain.Perfil
 	interagiu map[chaveInteracao]map[string]struct{} // likes e recusas
 	curtiu    map[chaveInteracao]map[string]struct{} // só likes
+	matriz    matching.Matriz
 }
 
 func adicionar(m map[chaveInteracao]map[string]struct{}, k chaveInteracao, valor string) {
@@ -145,7 +148,17 @@ func adicionar(m map[chaveInteracao]map[string]struct{}, k chaveInteracao, valor
 func verificarCandidatos(ctx context.Context, c *graph.Cliente, perfis []domain.Perfil,
 	interacoes []domain.Interacao, escolhidos []domain.Perfil) error {
 
+	paresFuncoes, err := c.BuscarComplementaridade(ctx)
+	if err != nil {
+		return err
+	}
+	matriz, err := matching.NovaMatriz(paresFuncoes)
+	if err != nil {
+		return err
+	}
+
 	v := &verificador{
+		matriz:    matriz,
 		c:         c,
 		perfis:    perfis,
 		porID:     make(map[string]domain.Perfil, len(perfis)),
@@ -205,12 +218,12 @@ func (v *verificador) conferirPar(ctx context.Context, eu domain.Perfil, jogo do
 		}
 	}
 
-	op := graph.Opcoes{Limite: 1_000_000, MinHorarios: 0, MaxDiffElo: domain.MaxDiffEloDuo, SinalSocial: true}
+	op := domain.OpcoesCandidatos{Limite: 1_000_000, MinHorarios: 0, MaxDiffElo: domain.MaxDiffEloDuo, SinalSocial: true}
 	obtidos, err := v.c.BuscarCandidatos(ctx, eu.ID, jogo, op)
 	if err != nil {
 		return nil, err
 	}
-	obtido := make(map[string]graph.Candidato, len(obtidos))
+	obtido := make(map[string]domain.Candidato, len(obtidos))
 	for _, cand := range obtidos {
 		obtido[cand.ID] = cand
 	}
@@ -224,7 +237,8 @@ func (v *verificador) conferirPar(ctx context.Context, eu domain.Perfil, jogo do
 	}
 
 	sinais := v.sinalEsperado(eu.ID, jogo)
-	errosHorario, errosSocial := 0, 0
+	errosHorario, errosSocial, errosComplemento := 0, 0, 0
+	meu, _ := eu.PerfilDoJogo(jogo)
 	for _, cand := range obtidos {
 		outro, ok := v.porID[cand.ID]
 		if !ok {
@@ -233,6 +247,10 @@ func (v *verificador) conferirPar(ctx context.Context, eu domain.Perfil, jogo do
 		if cand.HorariosComuns != bits.OnesCount32(eu.Disponibilidade&outro.Disponibilidade) {
 			errosHorario++
 		}
+		dele, _ := outro.PerfilDoJogo(jogo)
+		if math.Abs(cand.Complemento-maxComplemento(v.matriz, meu, dele)) > 1e-9 {
+			errosComplemento++
+		}
 		if cand.SinalSocial != sinais[cand.ID] {
 			errosSocial++
 		}
@@ -240,12 +258,15 @@ func (v *verificador) conferirPar(ctx context.Context, eu domain.Perfil, jogo do
 	if errosHorario > 0 {
 		problemas = append(problemas, fmt.Sprintf("%d candidatos com horários em comum errados", errosHorario))
 	}
+	if errosComplemento > 0 {
+		problemas = append(problemas, fmt.Sprintf("%d candidatos com complementaridade errada", errosComplemento))
+	}
 	if errosSocial > 0 {
 		problemas = append(problemas, fmt.Sprintf("%d candidatos com sinal social errado", errosSocial))
 	}
 
 	curto, err := v.c.BuscarCandidatos(ctx, eu.ID, jogo,
-		graph.Opcoes{Limite: 10, MinHorarios: 0, MaxDiffElo: domain.MaxDiffEloDuo})
+		domain.OpcoesCandidatos{Limite: 10, MinHorarios: 0, MaxDiffElo: domain.MaxDiffEloDuo})
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +323,7 @@ func primeiros(ids []string) []string { return ids[:min(3, len(ids))] }
 // ---------- Latência ----------
 
 func medirLatencia(ctx context.Context, c *graph.Cliente, escolhidos []domain.Perfil) {
-	op := graph.OpcoesPadrao()
+	op := domain.OpcoesPadrao()
 	var duracoes []time.Duration
 	for _, eu := range escolhidos {
 		for _, pj := range eu.Jogos {
@@ -321,4 +342,20 @@ func medirLatencia(ctx context.Context, c *graph.Cliente, escolhidos []domain.Pe
 	pct := func(p float64) time.Duration { return duracoes[int(float64(len(duracoes)-1)*p)] }
 	log.Printf("latência de BuscarCandidatos com as opções padrão (%d consultas): p50=%s p95=%s máx=%s",
 		len(duracoes), pct(0.50), pct(0.95), duracoes[len(duracoes)-1])
+}
+
+// maxComplemento recalcula em Go o que a consulta devolve em Complemento: o maior valor
+// de COMPLEMENTA entre qualquer função de um e qualquer função do outro, sem desconto
+// (D-031). A matriz vem do grafo, então isto confere as relações EXERCE e a travessia,
+// não os valores da matriz, que vêm de scripts/referencia.cypher pelo cmd/migrar.
+func maxComplemento(m matching.Matriz, a, b domain.PerfilJogo) float64 {
+	melhor := 0.0
+	for _, fa := range []string{a.FuncaoPrincipal, a.FuncaoSecundaria} {
+		for _, fb := range []string{b.FuncaoPrincipal, b.FuncaoSecundaria} {
+			if fa != "" && fb != "" {
+				melhor = max(melhor, m.Valor(fa, fb))
+			}
+		}
+	}
+	return melhor
 }
