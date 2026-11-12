@@ -21,7 +21,7 @@ A recomendação é sempre contextualizada por jogo: o motor responde "quem é u
 | 3 | Domínio e gerador de dados mock | Concluída |
 | 4 | Geração de candidatos no grafo | Concluída |
 | 5 | Scoring e reciprocidade | Concluída |
-| 6 | API e formulário | Pendente |
+| 6 | API e formulário | Concluída |
 | 7 | Avaliação e benchmarks | Pendente |
 | 8 | Extras opcionais (Graph Data Science, ajuste de pesos) | Pendente |
 | 9 | Fechamento (monografia e apresentação) | Pendente |
@@ -77,6 +77,29 @@ curl http://localhost:8080/saude
 ```
 
 No PowerShell, use `curl.exe` no lugar de `curl`. A resposta esperada é `{"banco":"ok","status":"ok"}`.
+
+Para ter usuários para recomendar, carregue os dados mock com `go run ./cmd/seed` (**apaga todos os usuários**, inclusive os cadastrados pelo formulário) antes de iniciar a API. O formulário fica em <http://localhost:8080/>.
+
+## API
+
+Detalhes do contrato na D-039 (`docs/decisoes.md`). Erros vêm como `{"erro": "...", "detalhes": [...]}`.
+
+| Rota | Descrição |
+|---|---|
+| `GET /` | Formulário de cadastro e tela de recomendações |
+| `GET /saude` | Estado da API e do banco |
+| `GET /usuarios/{id}` | Perfil público do usuário (sem persona, pesos nem faixas aceitas, D-042) |
+| `GET /usuarios/{id}/recomendacoes?jogo=lol&k=10` | Os `k` melhores parceiros (1 a 50, padrão 10), com score, motivo do match e os seis componentes do score nos dois sentidos |
+| `POST /usuarios` | Cadastra um perfil (respostas do `docs/questionario.md`) e devolve o id gerado |
+| `POST /usuarios/{id}/curtidas` | Curte `{"para": "u000002", "jogo": "lol"}`; devolve `{"match": true}` se a curtida for recíproca |
+| `POST /usuarios/{id}/recusas` | Recusa, com o mesmo corpo |
+
+```bash
+curl "http://localhost:8080/usuarios/u000001/recomendacoes?jogo=lol&k=3"
+curl -X POST http://localhost:8080/usuarios/u000001/curtidas -d '{"para":"u000002","jogo":"lol"}'
+```
+
+Cadastros e curtidas feitos pela API mudam a base: depois deles, rode `go run ./cmd/seed` antes de `cmd/verificar` ou `cmd/avaliar`.
 
 ## Variáveis de ambiente
 

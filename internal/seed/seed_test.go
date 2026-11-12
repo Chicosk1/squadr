@@ -284,3 +284,19 @@ func TestInteracoes(t *testing.T) {
 		t.Errorf("taxas de like deveriam crescer com o grau, obtido %v", taxa)
 	}
 }
+
+// TestPerfisValidos garante que o gerador só produz valores do vocabulário do formulário
+// (D-038). As personas escrevem os valores à mão; um erro de digitação passaria despercebido
+// pelo motor, que trata valor desconhecido como neutro.
+func TestPerfisValidos(t *testing.T) {
+	for _, p := range NovoGerador(42).GerarUsuarios(5000) {
+		if erros := p.Validar(); len(erros) > 0 {
+			t.Fatalf("%s (%s) inválido: %v", p.ID, p.Persona, erros)
+		}
+		for _, pj := range p.Jogos {
+			if pj.Nivel != pj.CalcularNivel() {
+				t.Fatalf("%s em %s: nível %v, esperado %v", p.ID, pj.Jogo, pj.Nivel, pj.CalcularNivel())
+			}
+		}
+	}
+}

@@ -440,3 +440,75 @@ O db hit é uma unidade abstrata de trabalho do banco; a métrica que vale para 
   | Motor completo | 0,981 | 0,998 | 0,933 | 1,000 |
 
   A saturação se confirma: o LoL fica em 1,000 nas duas versões, e só o Rust deixa algum espaço para medir diferença. Latência média de `Recomendar` (candidatos, perfis e scoring): 71,7 ms. No mesmo dia, o `cmd/verificar` terminou com 0 divergências, inclusive na complementaridade, e mediu `BuscarCandidatos` em p50 44,3 ms e p95 61,8 ms. Os outros ~27 ms vêm principalmente da leitura dos até 300 perfis; a Fase 7 separa os tempos de banco e de scoring.
+
+---
+
+## Fase 6 — API e formulário
+
+## D-038 — Vocabulário do formulário e cálculo do nível no domínio
+
+- **Data:** 10/11/2026
+- **Status:** Aceita
+- **Contexto:** os valores válidos de cada resposta (`rates_altas`, `solo_duo`, `as_vezes`...) existiam só como strings soltas nas personas do `seed` e no `questionario.md`. A Fase 6 precisa deles em três lugares: validação da API, opções do formulário e escalas ordinais do score. O cálculo do nível (`calcularNivel`) ficava no `seed`, mas a API também precisa calculá-lo para quem se cadastra.
+- **Opções consideradas:** repetir as listas em cada pacote; uma fonte única no `domain`.
+- **Decisão:** `internal/domain/vocabulario.go` guarda cada pergunta como uma lista ordenada de `Opcao{Valor, Rotulo}`. `Perfil.Validar()` (`validacao.go`) aplica as regras do questionário. `PerfilJogo.CalcularNivel()` substitui a função do `seed`. As escalas ordinais do `matching` (tamanho de tribo, limite de grupo, wipe) usam `domain.Valores(...)`, que respeita a ordem da lista.
+- **Motivo:** com uma lista só, o formulário não oferece um valor que a validação rejeita, e o score não usa uma ordem diferente da do formulário. O motor trata valor desconhecido como neutro (0,5), então um erro de digitação numa persona passaria despercebido. O novo `TestPerfisValidos` (`seed`) exige que todos os perfis gerados passem em `Validar()`.
+- **Consequências:** a ordem das listas passa a ter significado (é a escala ordinal); reordenar uma lista muda o score. Os rótulos das funções continuam no grafo (D-018, D-033); os das demais perguntas ficam no `domain`.
+
+## D-039 — Contrato da API REST
+
+- **Data:** 10/11/2026
+- **Status:** Aceita
+- **Contexto:** o plano previa `GET /usuarios/{id}/recomendacoes`, `POST /usuarios` e `POST /usuarios/{id}/curtidas`, sem detalhar corpo, erros, recusas e ids.
+- **Opções consideradas:**
+  - **Recusa:** campo `curtiu: bool` em `/curtidas`; ou uma rota própria `/recusas`.
+  - **Id do usuário:** enviado pelo cliente; ou gerado pelo servidor.
+  - **Avaliação repetida:** sobrescrever; ou ignorar em silêncio; ou recusar com 409.
+- **Decisão:**
+
+  | Rota | Sucesso | Erros |
+  |---|---|---|
+  | `GET /` | 200, formulário HTML | — |
+  | `GET /saude` | 200 | 503 sem banco |
+  | `GET /usuarios/{id}/recomendacoes?jogo=&k=` | 200, lista com nome, score, os dois scores unilaterais, social e motivos | 400 jogo ou `k` inválido (`k` de 1 a 50, padrão 10); 404 usuário; 422 não joga o jogo |
+  | `POST /usuarios` | 201, `{"id"}` e `Location` | 400 com a lista de todos os problemas |
+  | `POST /usuarios/{id}/curtidas` e `/recusas` (`{"para", "jogo"}`) | 201, `{"match": bool}` | 400; 404 se algum dos dois não existe ou não joga o jogo; 409 se já avaliou neste jogo |
+
+  Os erros são sempre `{"erro", "detalhes"?}`. O id é gerado pelo servidor: `w` + 8 hexadecimais de `crypto/rand`, o que separa os usuários do formulário dos do seed (`u000001`). O JSON rejeita campos desconhecidos (`persona` não entra de fora) e corpos acima de 64 KiB. Erro interno vira 500 com mensagem genérica; a causa vai só para o log.
+- **Motivo:** uma rota por ação é mais clara do que um booleano no corpo. O 409 torna explícito que o candidato some da lista depois de avaliado (o filtro "vistos" da D-029). O match mútuo é o que dá sentido ao "estilo match" e custa um `EXISTS` na mesma consulta.
+- **Consequências:** usuários criados pelo formulário entram no grafo, e o `cmd/verificar` e o `cmd/avaliar` passam a falhar ou a medir errado até um novo `go run ./cmd/seed`, que apaga todos os `Usuario`. Duas curtidas simultâneas do mesmo par podem criar duas relações (não há trava); para um protótipo de usuário único, o risco foi aceito.
+
+## D-040 — Criação de usuário em uma transação com conferência
+
+- **Data:** 10/11/2026
+- **Status:** Aceita
+- **Contexto:** a carga em lote (D-027) grava cada usuário em quatro consultas separadas e depende do MATCH dos nós de referência, que falha em silêncio (o bug que já aconteceu duas vezes). No seed, `ValidarFuncoes` e o `cmd/verificar` protegem a carga; um cadastro isolado pela API não tem essa proteção.
+- **Opções consideradas:** reaproveitar `CarregarUsuarios` como está; uma consulta nova que crie tudo com MERGE; as mesmas consultas da carga dentro de uma transação, com conferência antes do commit.
+- **Decisão:** `graph.CriarUsuario` roda as quatro consultas da carga em uma única transação de escrita (`ExecuteWrite`). Antes do commit, conta as relações `JOGA`, `EXERCE` e `DISPONIVEL` do novo usuário e compara com o esperado. Se faltar alguma, a transação é desfeita. A função secundária vazia deixa de gerar um item na carga.
+- **Motivo:** a mesma consulta serve à carga e ao cadastro, então não há duas formas de gravar um perfil. A transação garante tudo ou nada, e a conferência transforma o MATCH silencioso em erro.
+- **Consequências:** a validação da API já rejeita função inexistente no domínio. A conferência pega o caso em que o domínio e o grafo divergem (por exemplo, sem `cmd/migrar`). As curtidas usam o mesmo princípio: a consulta devolve uma linha só quando os dois usuários existem e jogam o jogo, e zero linhas viram 404.
+
+## D-041 — Formulário como página única servida pelo Go
+
+- **Data:** 10/11/2026
+- **Status:** Aceita
+- **Contexto:** a D-011 pede um formulário representativo, não uma interface completa. A API só pode usar `net/http` (D-014).
+- **Opções consideradas:** um front-end separado (React, Vue); uma página `html/template` com JavaScript puro, embutida no binário com `embed`.
+- **Decisão:** `internal/api/pagina.html`, embutida com `//go:embed` e renderizada com `html/template` a partir do vocabulário do `domain` e dos rótulos das funções no grafo. O JavaScript monta o JSON do cadastro, chama a API, lista as recomendações e permite curtir e recusar, avisando quando há match. Os textos vindos de usuários só entram na página por `textContent`.
+- **Motivo:** sem dependências nem build de front-end, e o binário continua sendo um só. O formulário é gerado das mesmas listas que a validação usa (D-038), então não há opção que a API rejeite. A página consome a mesma API pública, o que também a demonstra.
+- **Consequências:** a validação fica no servidor; o formulário não marca campos obrigatórios e mostra a lista de erros que a API devolve. `api.Novo` falha se alguma função do domínio não tiver rótulo no grafo.
+
+## D-042 — Perfil público e explicação do score
+
+- **Data:** 10/11/2026
+- **Status:** Aceita
+- **Contexto:** a tela de recomendações mostrava só o nome, o score e dois motivos. Para decidir entre curtir e recusar, quem usa precisa ver quem é o candidato. Para a avaliação e a apresentação, também é útil ver por que o motor chegou àquele número.
+- **Opções consideradas:**
+  - **Perfil:** devolver o `domain.Perfil` inteiro; ou um tipo público próprio, com só os campos escolhidos.
+  - **Explicação:** só os dois motivos; ou os seis componentes nos dois sentidos.
+- **Decisão:**
+  - `GET /usuarios/{id}` devolve um `perfilPublico`, com os valores já como rótulos: faixa etária, região, idiomas, voz, tolerância, compromisso, horários e, por jogo, funções, nível desejado e as respostas específicas. **Ficam de fora:** `persona` e `personaJogo` (regra inviolável), os pesos e as faixas etárias aceitas (preferências privadas, que só servem ao motor) e o nível normalizado.
+  - A resposta de recomendações ganha `componentes`: os seis critérios com `paraVoce` (c(A→B)) e `paraCandidato` (c(B→A)).
+  - Na página, "Ver perfil" abre o perfil, uma mini-grade com os horários em comum e as barras dos componentes.
+- **Motivo:** um tipo público separado faz com que um campo novo no domínio não vaze sem alguém decidir que ele é público. Mostrar os componentes nos dois sentidos torna visível a assimetria (D-035) e a reciprocidade (D-015). É o que justifica um par com score alto para um lado e baixo para o outro.
+- **Consequências:** qualquer pessoa com o id vê o perfil público; sem autenticação (trabalho futuro), isso é aceitável só no protótipo. O teste `TestPerfilPublico` falha se `persona`, `pesos` ou `faixasAceitas` aparecerem na resposta.

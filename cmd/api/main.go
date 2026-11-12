@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Chicosk1/squadr/internal/api"
 	"github.com/Chicosk1/squadr/internal/config"
+	"github.com/Chicosk1/squadr/internal/domain"
 	"github.com/Chicosk1/squadr/internal/graph"
+	"github.com/Chicosk1/squadr/internal/matching"
 )
 
 func main() {
@@ -25,38 +28,45 @@ func executar() error {
 	defer parar()
 
 	cfg := config.Carregar()
+	// Um único cliente para todo o processo (D-019).
 	cliente, err := graph.Conectar(ctx, cfg.Neo4jURI, cfg.Neo4jUsuario, cfg.Neo4jSenha, cfg.Neo4jBanco)
 	if err != nil {
 		return err
 	}
 	defer cliente.Fechar(context.Background())
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /saude", func(w http.ResponseWriter, r *http.Request) {
-		ctxPing, cancelar := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancelar()
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := cliente.Ping(ctxPing); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "indisponivel", "banco": "erro"})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "banco": "ok"})
-	})
+	// A matriz de complementaridade e os rótulos são lidos uma vez, na inicialização.
+	rec, err := matching.Novo(ctx, cliente, domain.OpcoesPadrao())
+	if err != nil {
+		return err
+	}
+	rotulos, err := cliente.BuscarRotulosFuncoes(ctx)
+	if err != nil {
+		return err
+	}
+	servidor, err := api.Novo(rec, cliente, rotulos, log.Default())
+	if err != nil {
+		return err
+	}
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.PortaAPI,
-		Handler:           mux,
+		Handler:           servidor.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	erroServidor := make(chan error, 1)
 	go func() { erroServidor <- srv.ListenAndServe() }()
-	log.Printf("API ouvindo em http://localhost:%s", cfg.PortaAPI)
+	log.Printf("API ouvindo em http://localhost:%s (formulário em /)", cfg.PortaAPI)
 
 	select {
 	case err := <-erroServidor:
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
 		return err
 	case <-ctx.Done():
 		log.Println("encerrando...")

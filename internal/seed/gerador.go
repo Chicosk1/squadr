@@ -30,7 +30,6 @@ var (
 	niveisDesejados = igual("parecido", "mais_experiente", "tanto_faz")
 	compromissos    = igual("fixo", "eventual", "tanto_faz")
 
-	nivelPorHoras = map[string]float64{"<100": 0.125, "100-500": 0.375, "500-2000": 0.625, "2000+": 0.875}
 
 	adjetivos = []string{"Sombrio", "Veloz", "Calmo", "Feroz", "Astuto", "Noturno", "Mistico", "Bravo",
 		"Gelado", "Ardente", "Furtivo", "Lendario", "Tranquilo", "Selvagem", "Letal", "Sereno"}
@@ -142,18 +141,8 @@ func (g *Gerador) gerarPerfilJogo(m ModeloJogo) domain.PerfilJogo {
 		pj.Elo = m.Elo.Sortear(g.r) // -1 = sem ranked
 		pj.Filas = slices.Clone(m.Filas)
 	}
-	pj.Nivel = calcularNivel(pj)
+	pj.Nivel = pj.CalcularNivel()
 	return pj
-}
-
-func calcularNivel(pj domain.PerfilJogo) float64 {
-	if pj.Jogo == domain.LoL {
-		if pj.Elo == domain.SemRanked {
-			return 0
-		}
-		return float64(pj.Elo+1) / 10
-	}
-	return nivelPorHoras[pj.Horas]
 }
 
 // ---------- Atributos gerais ----------

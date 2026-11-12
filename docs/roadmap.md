@@ -14,14 +14,14 @@
 | 3 | Domínio e gerador de dados mock | — | Concluída |
 | 4 | Geração de candidatos no grafo | — | Concluída, **falta commitar o fechamento** |
 | 5 | Scoring e reciprocidade | 11–12 | Concluída |
-| 6 | API e formulário | 13 | **Próxima** |
-| 7 | Avaliação e benchmarks | 14–16 | Pendente |
+| 6 | API e formulário | 13 | Concluída |
+| 7 | Avaliação e benchmarks | 14–16 | **Próxima** |
 | 8 | Extras opcionais | 17 | Pendente (só se a 7 estiver completa) |
 | 9 | Fechamento (monografia e apresentação) | 18 | Pendente |
 
 ```
-[0]──[1]──[2]──[3]──[4]──[5]──▶[6]──[7]──[8?]──[9]
- ✔    ✔    ✔    ✔    ✔    ✔    agora                monografia em paralelo desde já
+[0]──[1]──[2]──[3]──[4]──[5]──[6]──▶[7]──[8?]──[9]
+ ✔    ✔    ✔    ✔    ✔    ✔    ✔    agora           monografia em paralelo desde já
 ```
 
 ---
@@ -65,7 +65,7 @@
 
 | # | Item | Por quê |
 |---|---|---|
-| 1 | Commitar o fechamento da Fase 4 e a Fase 5 | Tudo está fora do histórico |
+| 1 | Commitar o fechamento da Fase 4 e as Fases 5 e 6 | Tudo está fora do histórico |
 | 2 | ~~Rodar `go run ./cmd/migrar`~~ | Feito em 10/11/2026 |
 | 3 | Atualizar ou arquivar as seções 8 e 12 de `docs/contexto-claude.md` | Quase todas as pendências e inconsistências ali listadas foram resolvidas; o documento agora engana quem o lê |
 | 4 | Levar ao orientador D-001 a D-010 e os três documentos da Fase 1 | Continuam "Proposta". É o maior risco do cronograma: uma mudança na modelagem agora repercute em todas as fases seguintes |
@@ -93,11 +93,13 @@
 - [x] `cmd/verificar` com 0 divergências (inclusive complementaridade) e `cmd/avaliar`: motor 0,981 × grafo 0,942; `Recomendar` em 71,7 ms em média (10/11/2026).
 
 ### Fase 6 — API e formulário (semana 13)
-- [ ] `GET /usuarios/{id}/recomendacoes?jogo=...`
-- [ ] `POST /usuarios` e `POST /usuarios/{id}/curtidas`
-- [ ] Middlewares de log (com latência) e de recuperação de panic.
-- [ ] Formulário HTML servido pelo próprio Go, com os rótulos em português lidos do grafo.
-- [ ] Resposta com o motivo do match.
+- [x] `GET /usuarios/{id}/recomendacoes?jogo=...&k=...`
+- [x] `POST /usuarios` (transação única com conferência, D-040), `POST /usuarios/{id}/curtidas` e `/recusas` com match mútuo (D-039)
+- [x] Middlewares de log (com latência) e de recuperação de panic.
+- [x] Formulário HTML servido pelo próprio Go, com os rótulos em português lidos do grafo.
+- [x] Resposta com o motivo do match.
+- [x] Perfil público do candidato (`GET /usuarios/{id}`) e explicação do score na página (D-042).
+- [x] Vocabulário do formulário e validação no `domain` (D-038); testado ponta a ponta contra o banco em 10/11/2026.
 
 ### Fase 7 — Avaliação (semanas 14–16)
 - [ ] NDCG@10 graduado como métrica principal (o Precision@10 binário satura, D-037), com resultado por persona.

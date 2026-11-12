@@ -106,9 +106,11 @@ func montarLoteUsuarios(perfis []domain.Perfil) []map[string]any {
 		var jogos, funcoes []map[string]any
 		for _, pj := range p.Jogos {
 			jogos = append(jogos, map[string]any{"jogo": string(pj.Jogo), "props": pj.Propriedades()})
-			funcoes = append(funcoes,
-				map[string]any{"id": pj.FuncaoPrincipal, "prioridade": 1},
-				map[string]any{"id": pj.FuncaoSecundaria, "prioridade": 2})
+			funcoes = append(funcoes, map[string]any{"id": pj.FuncaoPrincipal, "prioridade": 1})
+			// A secundária é opcional no formulário; um id vazio não acharia o nó no MATCH.
+			if pj.FuncaoSecundaria != "" {
+				funcoes = append(funcoes, map[string]any{"id": pj.FuncaoSecundaria, "prioridade": 2})
+			}
 		}
 		lote = append(lote, map[string]any{
 			"id":       p.ID,

@@ -105,15 +105,22 @@ func compromisso(a, b string) float64 {
 
 // ---------- Modo e servidor ----------
 
+// As escalas ordinais seguem a ordem do vocabulário do formulário (D-038).
+var (
+	ordemTribo  = domain.Valores(domain.TamanhosTribo)
+	ordemLimite = domain.Valores(domain.LimitesGrupo)
+	ordemWipe   = domain.Valores(domain.Wipes)
+)
+
 func modo(pa, pb domain.PerfilJogo) float64 {
 	switch pa.Jogo {
 	case domain.ARK:
 		return (servidorARK(pa.Servidor, pb.Servidor) +
-			escala(pa.TamanhoTribo, pb.TamanhoTribo, []string{"2-3", "4-6", "7+"})) / 2
+			escala(pa.TamanhoTribo, pb.TamanhoTribo, ordemTribo)) / 2
 	case domain.Rust:
 		return (servidorRust(pa.Servidor, pb.Servidor) +
-			escala(pa.LimiteGrupo, pb.LimiteGrupo, []string{"solo_duo", "trio", "quad", "sem_limite"}) +
-			escala(pa.Wipe, pb.Wipe, []string{"sempre", "as_vezes", "raramente"})) / 3
+			escala(pa.LimiteGrupo, pb.LimiteGrupo, ordemLimite) +
+			escala(pa.Wipe, pb.Wipe, ordemWipe)) / 3
 	case domain.LoL:
 		return filas(pa, pb)
 	}

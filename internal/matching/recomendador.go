@@ -20,7 +20,7 @@ type Fonte interface {
 }
 
 var (
-	ErrUsuarioNaoEncontrado = errors.New("usuário não encontrado")
+	ErrUsuarioNaoEncontrado = domain.ErrNaoEncontrado
 	ErrNaoJoga              = errors.New("usuário não joga este jogo")
 )
 
@@ -58,6 +58,7 @@ func (r *Recomendador) Matriz() Matriz { return r.matriz }
 
 type Recomendacao struct {
 	ID        string
+	Nome      string
 	Score     float64 // PesoReciproco·Reciproco + PesoSocial·Social
 	Reciproco float64
 	ScoreAB   float64 // s(A→B): quanto B serve para A
@@ -120,7 +121,7 @@ func (r *Recomendador) Pontuar(ctx context.Context, id string, jogo domain.Jogo)
 		if !ok {
 			return nil, fmt.Errorf("candidato %s não joga %s", c.ID, jogo)
 		}
-		rec := Recomendacao{ID: c.ID, Social: normalizarSocial(c.SinalSocial, maxSocial)}
+		rec := Recomendacao{ID: c.ID, Nome: b.Nome, Social: normalizarSocial(c.SinalSocial, maxSocial)}
 		rec.ScoreAB, rec.DeA = Unilateral(a, b, pa, pb, r.matriz)
 		rec.ScoreBA, rec.DeB = Unilateral(b, a, pb, pa, r.matriz)
 		rec.Reciproco = Reciproco(rec.ScoreAB, rec.ScoreBA)

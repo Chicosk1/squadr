@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>squadr</title>
+<style>
+  :root {
+    --fundo: #f6f7f9; --cartao: #ffffff; --texto: #1d2129; --suave: #5f6b7a;
+    --borda: #d9dee5; --destaque: #2f6fed; --ok: #1f8a4c; --erro: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #14171c; --cartao: #1d2128; --texto: #e6e9ee; --suave: #9aa5b4;
+      --borda: #333a45; --destaque: #6b9bff; --ok: #4cc27f; --erro: #ff7b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  h2 { margin: 0 0 12px; font-size: 19px; }
+  .sub { color: var(--suave); margin: 0 0 24px; }
+  section, fieldset.jogo { background: var(--cartao); border: 1px solid var(--borda);
+            border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 14px; min-width: 0; }
+  legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+  label { display: inline-flex; align-items: center; gap: 6px; margin: 0 14px 6px 0; }
+  .campo { display: grid; gap: 4px; margin-bottom: 12px; }
+  .campo > span { font-weight: 600; }
+  .linhas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+  input[type=text], select { font: inherit; color: inherit; background: var(--fundo);
+            border: 1px solid var(--borda); border-radius: 6px; padding: 6px 8px; width: 100%; }
+  button { font: inherit; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer;
+           background: var(--destaque); color: #fff; }
+  button.secundario { background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  .barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .barra .campo { margin: 0; flex: 1 1 160px; }
+  .grade { overflow-x: auto; }
+  .grade table { border-collapse: collapse; }
+  .grade th, .grade td { padding: 4px 8px; text-align: center; font-weight: normal; }
+  .grade td label { margin: 0; }
+  fieldset.jogo[hidden] { display: none; }
+  details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .aviso { padding: 10px 12px; border-radius: 6px; margin-top: 12px; }
+  .aviso.erro { border: 1px solid var(--erro); color: var(--erro); }
+  .aviso.ok { border: 1px solid var(--ok); color: var(--ok); }
+  .aviso ul { margin: 6px 0 0; padding-left: 18px; }
+  .cartoes { display: grid; gap: 12px; margin-top: 14px; }
+  .cartao { border: 1px solid var(--borda); border-radius: 8px; padding: 12px 14px;
+            display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  .cartao .info { flex: 1 1 260px; }
+  .cartao .nome { font-weight: 600; }
+  .cartao .meta { color: var(--suave); font-size: 13px; }
+  .chip { display: inline-block; border: 1px solid var(--borda); border-radius: 999px;
+          padding: 1px 8px; font-size: 12px; margin: 4px 4px 0 0; }
+  .score { font-size: 22px; font-weight: 700; min-width: 56px; text-align: right; }
+  .perfil { flex: 1 1 100%; border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 4px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px; }
+  .perfil[hidden] { display: none; }
+  .perfil h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+               color: var(--suave); margin: 0 0 6px; }
+  .perfil dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
+  .perfil dt { color: var(--suave); }
+  .perfil dd { margin: 0; }
+  .mini { border-collapse: collapse; font-size: 11px; }
+  .mini th { font-weight: normal; color: var(--suave); padding: 0 4px; }
+  .mini td { width: 22px; height: 16px; border: 1px solid var(--borda); }
+  .mini td.comum { background: var(--ok); }
+  .mini td.dele { background: color-mix(in srgb, var(--destaque) 35%, transparent); }
+  .mini td.meu { background: color-mix(in srgb, var(--suave) 25%, transparent); }
+  .legenda { font-size: 12px; color: var(--suave); margin-top: 4px; }
+  .legenda i { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 10px; vertical-align: middle; }
+  .comps { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .comps td { padding: 3px 4px; }
+  .comps td.nomec { color: var(--suave); white-space: nowrap; }
+  .barra-v { height: 8px; border-radius: 4px; background: var(--borda); overflow: hidden; min-width: 60px; }
+  .barra-v > div { height: 100%; background: var(--destaque); }
+  .barra-v.outro > div { background: var(--ok); }
+</style>
+</head>
+<body>
+<main>
+  <h1>squadr</h1>
+  <p class="sub">Protótipo do motor de recomendação: encontre parceiros para ARK, Rust e League of Legends.</p>
+
+  <section>
+    <h2>Ver recomendações</h2>
+    <form id="busca" class="barra">
+      <div class="campo"><span>Id do usuário</span>
+        <input type="text" name="usuario" placeholder="ex.: u000001" autocomplete="off"></div>
+      <div class="campo"><span>Jogo</span>
+        <select name="jogo">{{range .Jogos}}<option value="{{.ID}}">{{.Rotulo}}</option>{{end}}</select></div>
+      <button type="submit">Buscar</button>
+    </form>
+    <div id="avisoBusca"></div>
+    <div id="resultado"></div>
+  </section>
+
+  <section>
+    <h2>Cadastro</h2>
+    <form id="cadastro">
+      <label><input type="checkbox" name="maiorDeIdade"> Tenho 18 anos ou mais</label>
+
+      <div class="linhas">
+        <div class="campo"><span>Apelido</span><input type="text" name="nome" maxlength="40"></div>
+        <div class="campo"><span>Região</span>
+          <select name="regiao">{{range .Regioes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+      </div>
+
+      <fieldset><legend>Sua faixa etária</legend>
+        {{range .FaixasEtarias}}<label><input type="radio" name="faixaEtaria" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+      <fieldset><legend>Aceito jogar com</legend>
+        {{range .FaixasEtarias}}<label><input type="checkbox" name="faixasAceitas" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+      <fieldset><legend>Idiomas</legend>
+        {{range .Idiomas}}<label><input type="checkbox" name="idiomas" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+
+      <fieldset><legend>Quando você costuma jogar? (horário de Brasília)</legend>
+        <div class="grade"><table>
+          <tr><th></th>{{range .Periodos}}<th>{{.}}</th>{{end}}</tr>
+          {{range .Dias}}<tr><th>{{.Rotulo}}</th>{{range .Horarios}}<td><label><input type="checkbox" name="horarios" value="{{.}}" aria-label="{{.}}"></label></td>{{end}}</tr>{{end}}
+        </table></div></fieldset>
+
+      <div class="linhas">
+        <fieldset><legend>Usa chat de voz?</legend>
+          {{range .UsosVoz}}<label><input type="radio" name="usaVoz" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+        <fieldset><legend>Exige voz do parceiro?</legend>
+          <label><input type="checkbox" name="exigeVoz"> Sim</label></fieldset>
+      </div>
+      <div class="linhas">
+        <div class="campo"><span>Tolerância a trash talk (1 = nada, 5 = normal pra mim)</span>
+          <select name="toleranciaToxicidade">{{range .Escala}}<option{{if eq . 3}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+        <div class="campo"><span>O que você procura?</span>
+          <select name="compromisso">{{range .Compromissos}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+      </div>
+
+      <fieldset><legend>Quais jogos você joga?</legend>
+        {{range .Jogos}}<label><input type="checkbox" name="jogos" value="{{.ID}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+
+      {{$d := .}}
+      {{range .Jogos}}
+      <fieldset class="jogo" data-jogo="{{.ID}}" hidden>
+        <legend>{{.Rotulo}}</legend>
+        <div class="linhas">
+          <div class="campo"><span>Intensidade (1 = casual, 5 = competitivo)</span>
+            <select data-campo="intensidade" data-num>{{range $d.Escala}}<option{{if eq . 3}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+          <div class="campo"><span>Nível que prefere no parceiro</span>
+            <select data-campo="nivelDesejado">{{range $d.NiveisDesejados}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Função principal</span>
+            <select data-campo="funcaoPrincipal">{{range .Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Função secundária</span>
+            <select data-campo="funcaoSecundaria"><option value="">Nenhuma</option>{{range .Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          {{if eq .ID "ark"}}
+          <div class="campo"><span>Versão</span><select data-campo="versao">{{range $d.VersoesARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Plataforma</span><select data-campo="plataforma">{{range $d.PlataformasARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Modo</span><select data-campo="modo">{{range $d.ModosARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Servidor</span><select data-campo="servidor">{{range $d.ServidoresARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Tamanho de tribo</span><select data-campo="tamanhoTribo">{{range $d.TamanhosTribo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          {{else if eq .ID "rust"}}
+          <div class="campo"><span>Versão</span><select data-campo="versao">{{range $d.VersoesRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Servidor</span><select data-campo="servidor">{{range $d.ServidoresRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Limite de grupo</span><select data-campo="limiteGrupo">{{range $d.LimitesGrupo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Joga no dia do wipe?</span><select data-campo="wipe">{{range $d.Wipes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <div class="campo"><span>Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          {{else}}
+          <div class="campo"><span>Elo atual</span><select data-campo="elo" data-num><option value="-1">Sem ranked</option>{{range $d.Elos}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
+          <fieldset><legend>Filas</legend>
+            {{range $d.Filas}}<label><input type="checkbox" data-campo="filas" data-lista value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
+          {{end}}
+        </div>
+      </fieldset>
+      {{end}}
+
+      <details><summary>Quanto cada critério importa para você? (opcional)</summary>
+        <div class="linhas">
+          {{range .Pesos}}<div class="campo"><span>{{.Rotulo}}</span>
+            <select data-peso="{{.Valor}}"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>{{end}}
+        </div>
+      </details>
+
+      <button type="submit">Cadastrar</button>
+      <div id="avisoCadastro"></div>
+    </form>
+  </section>
+</main>
+
+<!-- Modelo da mini-grade de horários do perfil, gerado das mesmas listas do formulário. -->
+<template id="miniGrade">
+  <table class="mini">
+    <tr><th></th>{{range .Periodos}}<th title="{{.}}">{{slice . 0 3}}</th>{{end}}</tr>
+    {{range .Dias}}<tr><th>{{.Rotulo}}</th>{{range .Horarios}}<td data-h="{{.}}" title="{{.}}"></td>{{end}}</tr>{{end}}
+  </table>
+</template>
+
+<script>
+"use strict";
+const $ = (sel, raiz = document) => raiz.querySelector(sel);
+const $$ = (sel, raiz = document) => [...raiz.querySelectorAll(sel)];
+
+// Mostra a seção de cada jogo marcado.
+$$('input[name="jogos"]').forEach(caixa => caixa.addEventListener("change", () => {
+  $(`fieldset.jogo[data-jogo="${caixa.value}"]`).hidden = !caixa.checked;
+}));
+
+function el(tag, classe, texto) {
+  const e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (texto !== undefined) e.textContent = texto; // nunca innerHTML: nomes vêm de usuários
+  return e;
+}
+
+function aviso(alvo, tipo, msg, detalhes = []) {
+  alvo.replaceChildren();
+  const caixa = el("div", "aviso " + tipo, msg);
+  if (detalhes.length) {
+    const ul = el("ul");
+    detalhes.forEach(d => ul.append(el("li", "", d)));
+    caixa.append(ul);
+  }
+  alvo.append(caixa);
+}
+
+async function chamar(metodo, url, corpo) {
+  const resp = await fetch(url, {
+    method: metodo,
+    headers: corpo ? { "Content-Type": "application/json" } : {},
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const dados = await resp.json().catch(() => ({}));
+  return { status: resp.status, dados };
+}
+
+// ---------- Cadastro ----------
+
+function coletar(form) {
+  const f = new FormData(form);
+  const dados = {
+    maiorDeIdade: f.has("maiorDeIdade"),
+    nome: f.get("nome").trim(),
+    faixaEtaria: f.get("faixaEtaria") || "",
+    faixasAceitas: f.getAll("faixasAceitas"),
+    regiao: f.get("regiao"),
+    idiomas: f.getAll("idiomas"),
+    horarios: f.getAll("horarios"),
+    usaVoz: f.get("usaVoz") || "",
+    exigeVoz: f.has("exigeVoz"),
+    toleranciaToxicidade: Number(f.get("toleranciaToxicidade")),
+    compromisso: f.get("compromisso"),
+    pesos: {},
+    jogos: [],
+  };
+  $$("[data-peso]", form).forEach(s => dados.pesos[s.dataset.peso] = Number(s.value));
+  for (const jogo of f.getAll("jogos")) {
+    const item = { jogo };
+    $$("[data-campo]", $(`fieldset.jogo[data-jogo="${jogo}"]`)).forEach(c => {
+      const nome = c.dataset.campo;
+      if ("lista" in c.dataset) {
+        item[nome] = item[nome] || [];
+        if (c.checked) item[nome].push(c.value);
+      } else {
+        item[nome] = "num" in c.dataset ? Number(c.value) : c.value;
+      }
+    });
+    dados.jogos.push(item);
+  }
+  return dados;
+}
+
+$("#cadastro").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const alvo = $("#avisoCadastro");
+  const dados = coletar(ev.target);
+  const { status, dados: resp } = await chamar("POST", "/usuarios", dados);
+  if (status !== 201) {
+    aviso(alvo, "erro", resp.erro || "Falha no cadastro.", resp.detalhes || []);
+    return;
+  }
+  aviso(alvo, "ok", `Cadastro feito. Seu id é ${resp.id}.`);
+  const busca = $("#busca");
+  busca.usuario.value = resp.id;
+  busca.jogo.value = dados.jogos[0].jogo;
+  buscar();
+  busca.scrollIntoView({ behavior: "smooth" });
+});
+
+// ---------- Recomendações ----------
+
+// O perfil de quem busca é lido uma vez por busca, para destacar os horários em comum.
+let meuPerfil = null;
+
+async function buscar() {
+  const form = $("#busca");
+  const id = form.usuario.value.trim(), jogo = form.jogo.value;
+  const alvo = $("#avisoBusca"), lista = $("#resultado");
+  lista.replaceChildren();
+  alvo.replaceChildren();
+  if (!id) return aviso(alvo, "erro", "Informe o id do usuário.");
+  const { status, dados } = await chamar("GET",
+    `/usuarios/${encodeURIComponent(id)}/recomendacoes?jogo=${encodeURIComponent(jogo)}`);
+  if (status !== 200) return aviso(alvo, "erro", dados.erro || "Falha na busca.");
+
+  meuPerfil = chamar("GET", `/usuarios/${encodeURIComponent(id)}`).then(r => r.status === 200 ? r.dados : null);
+  if (!dados.recomendacoes.length) return aviso(alvo, "erro", "Nenhum candidato passou nos filtros.");
+  const cartoes = el("div", "cartoes");
+  dados.recomendacoes.forEach(r => cartoes.append(cartao(id, jogo, r, alvo)));
+  lista.append(cartoes);
+}
+
+const pct = v => Math.round(v * 100) + "%";
+
+// ---------- Perfil do candidato ----------
+
+function definicoes(pares) {
+  const dl = el("dl");
+  pares.forEach(([nome, valor]) => dl.append(el("dt", "", nome), el("dd", "", valor)));
+  return dl;
+}
+
+function bloco(titulo, ...filhos) {
+  const div = el("div");
+  div.append(el("h3", "", titulo), ...filhos);
+  return div;
+}
+
+function miniGrade(deles, meus) {
+  const tabela = $("#miniGrade").content.cloneNode(true);
+  $$("td[data-h]", tabela).forEach(td => {
+    const h = td.dataset.h, dele = deles.has(h), meu = meus.has(h);
+    td.className = dele && meu ? "comum" : dele ? "dele" : meu ? "meu" : "";
+  });
+  const div = el("div");
+  const legenda = el("div", "legenda");
+  [["comum", "em comum"], ["dele", "só da pessoa"], ["meu", "só seu"]].forEach(([classe, texto]) => {
+    const marca = el("i", "");
+    marca.style.background = `var(--${classe === "comum" ? "ok" : classe === "dele" ? "destaque" : "suave"})`;
+    legenda.append(marca, texto);
+  });
+  div.append(tabela, legenda);
+  return div;
+}
+
+function barra(valor, classe) {
+  const b = el("div", "barra-v " + classe);
+  const preenchido = el("div");
+  preenchido.style.width = pct(valor);
+  b.append(preenchido);
+  b.title = pct(valor);
+  return b;
+}
+
+function tabelaComponentes(componentes) {
+  const t = el("table", "comps");
+  const cab = el("tr");
+  cab.append(el("td"), el("td", "nomec", "bom para você"), el("td", "nomec", "você é bom para a pessoa"));
+  t.append(cab);
+  componentes.forEach(c => {
+    const tr = el("tr"), a = el("td"), b = el("td");
+    a.append(barra(c.paraVoce, ""));
+    b.append(barra(c.paraCandidato, "outro"));
+    tr.append(el("td", "nomec", c.nome), a, b);
+    t.append(tr);
+  });
+  return t;
+}
+
+async function preencherPerfil(painel, r, jogo) {
+  const { status, dados: p } = await chamar("GET", `/usuarios/${encodeURIComponent(r.id)}`);
+  if (status !== 200) return aviso(painel, "erro", p.erro || "Falha ao carregar o perfil.");
+  const eu = await meuPerfil;
+  const doJogo = p.jogos.find(j => j.jogo === jogo);
+  const outros = p.jogos.filter(j => j.jogo !== jogo).map(j => j.rotulo);
+
+  painel.replaceChildren(
+    bloco("Perfil", definicoes([
+      ["Faixa etária", p.faixaEtaria], ["Região", p.regiao], ["Idiomas", p.idiomas.join(", ")],
+      ["Voz", p.usaVoz + (p.exigeVoz ? " (exige do parceiro)" : "")],
+      ["Trash talk", `tolera ${p.toleranciaToxicidade} de 5`], ["Procura", p.compromisso],
+      ...(outros.length ? [["Também joga", outros.join(", ")]] : []),
+    ])),
+    bloco(doJogo.rotulo, definicoes([
+      ["Função", doJogo.funcaoPrincipal + (doJogo.funcaoSecundaria ? ` (secundária: ${doJogo.funcaoSecundaria})` : "")],
+      ["Prefere parceiro", doJogo.nivelDesejado],
+      ...doJogo.detalhes.map(d => [d.nome, d.valor]),
+    ])),
+    bloco("Horários", miniGrade(new Set(p.horarios), new Set(eu ? eu.horarios : []))),
+    bloco("Por que o score", tabelaComponentes(r.componentes)),
+  );
+}
+
+function cartao(eu, jogo, r, alvo) {
+  const c = el("div", "cartao");
+  const info = el("div", "info");
+  info.append(el("div", "nome", r.nome), el("div", "meta",
+    `${r.id} · bom para você: ${pct(r.scoreParaVoce)} · você é bom para a pessoa: ${pct(r.scoreParaCandidato)}`));
+  const motivos = el("div");
+  r.motivos.forEach(m => motivos.append(el("span", "chip", m)));
+  info.append(motivos);
+
+  const curtir = el("button", "", "Curtir");
+  const recusar = el("button", "secundario", "Recusar");
+  const agir = rota => async () => {
+    const { status, dados } = await chamar("POST",
+      `/usuarios/${encodeURIComponent(eu)}/${rota}`, { para: r.id, jogo });
+    if (status === 201 || status === 409) c.remove();
+    if (status === 201 && dados.match) aviso(alvo, "ok", `É um match com ${r.nome}!`);
+    else if (status !== 201 && status !== 409) aviso(alvo, "erro", dados.erro || "Falha.");
+  };
+  curtir.addEventListener("click", agir("curtidas"));
+  recusar.addEventListener("click", agir("recusas"));
+
+  // O perfil só é buscado na primeira vez que o painel abre.
+  const verPerfil = el("button", "secundario", "Ver perfil");
+  const painel = el("div", "perfil");
+  painel.hidden = true;
+  let carregado = false;
+  verPerfil.addEventListener("click", () => {
+    painel.hidden = !painel.hidden;
+    verPerfil.textContent = painel.hidden ? "Ver perfil" : "Ocultar perfil";
+    if (!carregado && !painel.hidden) {
+      carregado = true;
+      painel.append(el("div", "", "Carregando..."));
+      preencherPerfil(painel, r, jogo);
+    }
+  });
+
+  c.append(info, el("div", "score", pct(r.score)), verPerfil, curtir, recusar, painel);
+  return c;
+}
+
+$("#busca").addEventListener("submit", ev => { ev.preventDefault(); buscar(); });
+</script>
+</body>
+</html>

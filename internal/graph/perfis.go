@@ -10,7 +10,8 @@ import (
 	"github.com/Chicosk1/squadr/internal/domain"
 )
 
-var ErrNaoEncontrado = errors.New("usuário não encontrado")
+// ErrNaoEncontrado é o mesmo erro do domínio, para a API tratá-lo sem importar o graph.
+var ErrNaoEncontrado = domain.ErrNaoEncontrado
 
 const queryPerfis = `
 UNWIND $ids AS uid
