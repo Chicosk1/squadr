@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -277,6 +278,17 @@ func TestCriarUsuario(t *testing.T) {
 	}
 }
 
+// TestSecundariaPreencher: no LoL, só quem escolhe Preencher pode ficar sem secundária (D-045).
+func TestSecundariaPreencher(t *testing.T) {
+	a := novoAmbiente(t)
+	m := cadastroValido()
+	lol := m["jogos"].([]map[string]any)[1]
+	lol["funcaoPrincipal"], lol["funcaoSecundaria"] = "lol:fill", ""
+	if w := a.chamar("POST", "/usuarios", corpo(t, m)); w.Code != http.StatusCreated {
+		t.Fatalf("Preencher sem secundária: status %d: %s", w.Code, w.Body)
+	}
+}
+
 func TestCriarUsuarioInvalido(t *testing.T) {
 	a := novoAmbiente(t)
 	alterar := func(f func(m map[string]any)) string {
@@ -292,6 +304,9 @@ func TestCriarUsuarioInvalido(t *testing.T) {
 		"sem jogos":        alterar(func(m map[string]any) { m["jogos"] = []any{} }),
 		"função de outro jogo": alterar(func(m map[string]any) {
 			m["jogos"].([]map[string]any)[0]["funcaoPrincipal"] = "lol:adc"
+		}),
+		"LoL sem secundária": alterar(func(m map[string]any) {
+			m["jogos"].([]map[string]any)[1]["funcaoSecundaria"] = ""
 		}),
 		"JSON quebrado": `{"nome": `,
 		"dois objetos":  corpo(t, cadastroValido()) + "{}",
@@ -511,6 +526,9 @@ func TestPar(t *testing.T) {
 	if len(r.Filtros) != 2 || r.Filtros[0].Motivo != "" || r.Filtros[1] != (filtroJSON{"Fila em comum", false, "ARAM × Flex"}) {
 		t.Errorf("filtros errados: %+v", r.Filtros)
 	}
+	if !quaseIgual(r.FatorFuncao, 0.95) {
+		t.Errorf("fator de função %v, esperado 0,95 (função 0,9)", r.FatorFuncao)
+	}
 	if strings.Join(r.Comuns, ",") != "sex-noite" {
 		t.Errorf("horários em comum: %v", r.Comuns)
 	}
@@ -535,3 +553,5 @@ func TestPar(t *testing.T) {
 		}
 	}
 }
+
+func quaseIgual(a, b float64) bool { return math.Abs(a-b) < 1e-9 }

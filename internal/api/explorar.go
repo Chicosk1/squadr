@@ -108,6 +108,7 @@ type respostaPar struct {
 	ScoreParaA   float64         `json:"scoreParaA"`     // s(A→B)
 	ScoreParaB   float64         `json:"scoreParaB"`     // s(B→A)
 	Reciproco    float64         `json:"reciproco"`
+	FatorFuncao  float64         `json:"fatorFuncao"` // multiplica os dois scores (D-045)
 	Componentes  []componentePar `json:"componentes"`
 	Motivos      []string        `json:"motivos"`
 	Posicao      int             `json:"posicao"` // de B no ranking de A; 0 se B não está nele
@@ -162,6 +163,7 @@ func (s *Servidor) par(w http.ResponseWriter, r *http.Request) {
 		saida.Motivos = []string{}
 	}
 	if e.Calculado {
+		saida.FatorFuncao = matching.FatorFuncao(e.DeA[matching.Funcao])
 		for c := range matching.NumComponentes {
 			saida.Componentes = append(saida.Componentes, componentePar{Nome: c.String(), ParaA: e.DeA[c], ParaB: e.DeB[c]})
 		}

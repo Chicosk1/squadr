@@ -94,7 +94,7 @@ Respondida apenas por quem marcou League of Legends na G11.
 |---|---|---|---|---|
 | L01 | Qual o seu elo atual? | Sem ranked, Ferro, Bronze, Prata, Ouro, Platina, Esmeralda, Diamante, Mestre, Grão-Mestre, Desafiante | Score (nível) + filtro na fila Solo/Duo | Riot |
 | L02 | Qual a sua função principal? | Top, Jungle, Mid, ADC, Suporte, Preencher | Grafo (complementaridade) | Riot (histórico de partidas) |
-| L03 | Qual a sua função secundária? | Top, Jungle, Mid, ADC, Suporte, Preencher | Grafo (complementaridade) | Riot (histórico de partidas) |
+| L03 | Qual a sua função secundária? Obrigatória, exceto para quem escolhe Preencher (D-045) | Top, Jungle, Mid, ADC, Suporte, Preencher | Grafo (complementaridade) | Riot (histórico de partidas) |
 | L04 | Quais filas você joga? | Solo/Duo, Flex, Normal, ARAM, Clash (múltipla escolha) | Score + filtro (nenhuma fila em comum elimina) | Riot |
 | L05 | Qual a sua intensidade? | 1 (casual) a 5 (competitivo) | Score | Formulário |
 | L06 | Qual nível você prefere no parceiro? | Parecido, Mais experiente, Tanto faz | Score (assimétrico) | Formulário |

@@ -99,6 +99,10 @@ func (pj PerfilJogo) validar() []string {
 		} else if pj.FuncaoSecundaria == pj.FuncaoPrincipal {
 			add("a função secundária deve ser diferente da principal")
 		}
+	} else if pj.Jogo == LoL && pj.FuncaoPrincipal != FuncaoPreencher {
+		// Como no cliente do LoL: quem não escolhe Preencher precisa de uma posição secundária.
+		// Com duas posições diferentes, quaisquer dois jogadores têm uma divisão possível (D-045).
+		add("no League of Legends, a função secundária é obrigatória (exceto para Preencher)")
 	}
 
 	switch pj.Jogo {

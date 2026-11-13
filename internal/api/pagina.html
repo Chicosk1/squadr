@@ -203,6 +203,7 @@
   .criterio-nome { font-size: 13.5px; margin-bottom: 5px; }
   .criterio.motivo .criterio-nome { font-weight: 600; }
   .criterio.motivo .criterio-nome small { margin-left: 8px; font-weight: 400; color: var(--acento); }
+  .criterio .criterio-nome small.fator { margin-left: 8px; font-weight: 400; color: var(--tinta-2); }
   .barras { display: grid; grid-template-columns: 2.8em 1fr 1fr 2.8em; align-items: center; column-gap: 8px; }
   .barras .v { font-family: var(--f-estreita); font-size: 14px; }
   .barras .v:last-child { text-align: right; }
@@ -463,7 +464,7 @@
             <label class="campo"><span class="rotulo">Função principal</span>
               <select data-campo="funcaoPrincipal">{{range $j.Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
             <label class="campo"><span class="rotulo">Função secundária</span>
-              <select data-campo="funcaoSecundaria"><option value="">Nenhuma</option>{{range $j.Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+              <select data-campo="funcaoSecundaria"><option value="">{{if eq $j.ID "lol"}}Escolha uma posição{{else}}Nenhuma{{end}}</option>{{range $j.Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
             {{if eq $j.ID "ark"}}
             <label class="campo"><span class="rotulo">Versão</span><select data-campo="versao">{{range $d.VersoesARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
             <label class="campo"><span class="rotulo">Plataforma</span><select data-campo="plataforma">{{range $d.PlataformasARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
@@ -953,6 +954,7 @@ function placar(p) {
     item(p.reciproco, "Recíproco, média harmônica", "central"),
     item(p.scoreParaB, `Quanto ${A} atende ${B}`));
   const notas = [];
+  if (p.fatorFuncao < 1) notas.push(el("p", { class: "nota", texto: `O encaixe de funções multiplica os dois scores por ${num(p.fatorFuncao)}. Um encaixe ruim não é compensado pelos outros critérios.` }));
   if (!p.passaFiltros) notas.push(el("p", { class: "nota", texto: "Como o par é barrado antes, o motor nunca chega a esses números. Eles mostram o que ele daria." }));
   else if (p.posicao > 0 && p.social > 0) notas.push(el("p", { class: "nota", texto: `Somando o sinal social das curtidas, o score final no ranking é ${num(p.score)}.` }));
   return [caixa, ...notas];
@@ -963,8 +965,9 @@ function criterios(p) {
   const motivos = new Set(p.passaFiltros ? p.motivos : []);
   const linhas = p.componentes.map(c => {
     const motivo = motivos.has(c.nome);
+    const fator = c.nome === "funções complementares" ? el("small", { class: "fator", texto: `multiplica o score por ${num(p.fatorFuncao)}` }) : null;
     return el("div", { class: "criterio" + (motivo ? " motivo" : "") },
-      el("div", { class: "criterio-nome" }, maiuscula(c.nome), motivo && p.passaFiltros ? el("small", { texto: "motivo do match" }) : null),
+      el("div", { class: "criterio-nome" }, maiuscula(c.nome), motivo && p.passaFiltros ? el("small", { texto: "motivo do match" }) : null, fator),
       el("div", { class: "barras", role: "img", "aria-label": `${maiuscula(c.nome)}: ${num(c.paraA)} para ${A}, ${num(c.paraB)} para ${B}` },
         el("span", { class: "v", texto: num(c.paraA) }),
         el("span", { class: "trilho esq" }, el("b", { style: `width:${c.paraA * 100}%` })),
@@ -1122,8 +1125,12 @@ function validarPasso(n) {
     for (const jogo of jogos) {
       const secao = $(`.jogo-cadastro[data-jogo="${jogo}"]`, form);
       const principal = $('[data-campo="funcaoPrincipal"]', secao).value;
-      if ($('[data-campo="funcaoSecundaria"]', secao).value === principal) {
+      const secundaria = $('[data-campo="funcaoSecundaria"]', secao).value;
+      if (secundaria === principal) {
         erros.push(`${rotuloJogo(jogo)}: a função secundária precisa ser diferente da principal.`);
+      }
+      if (jogo === "lol" && !secundaria && principal !== "lol:fill") {
+        erros.push("League of Legends: escolha uma posição secundária. Como no jogo, só quem escolhe Preencher fica sem.");
       }
       if (jogo === "lol" && !$$('[data-campo="filas"]:checked', secao).length) {
         erros.push("League of Legends: marque ao menos uma fila.");

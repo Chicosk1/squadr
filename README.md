@@ -21,7 +21,7 @@ A recomendação é sempre contextualizada por jogo: o motor responde "quem é u
 | 3 | Domínio e gerador de dados mock | Concluída |
 | 4 | Geração de candidatos no grafo | Concluída |
 | 5 | Scoring e reciprocidade | Concluída |
-| 6 | API e formulário | Concluída |
+| 6 | API e formulário (tela de exploração e cadastro em passos, D-043 e D-044; fator de função, D-045) | Concluída |
 | 7 | Avaliação e benchmarks | Pendente |
 | 8 | Extras opcionais (Graph Data Science, ajuste de pesos) | Pendente |
 | 9 | Fechamento (monografia e apresentação) | Pendente |

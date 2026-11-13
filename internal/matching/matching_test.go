@@ -475,3 +475,51 @@ func TestExplicar(t *testing.T) {
 		}
 	}
 }
+
+// ---------- Fator de função (D-045) ----------
+
+// TestFatorFuncao usa dois jogadores iguais em tudo, menos nas funções: o fator precisa
+// separar os encaixes que a média ponderada sozinha deixava em 0,85 a 1,00.
+func TestFatorFuncao(t *testing.T) {
+	m, err := NovaMatriz(paresDoScript(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := domain.Perfil{Disponibilidade: 0xF0F0, Compromisso: "fixo", UsaVoz: "sim", ToleranciaToxicidade: 3,
+		Pesos: domain.Pesos{Horario: 3, Intensidade: 3, Modo: 3, Comunicacao: 3, Funcao: 3, Nivel: 3}}
+	pj := func(jogo domain.Jogo, principal, secundaria string) domain.PerfilJogo {
+		return domain.PerfilJogo{Jogo: jogo, FuncaoPrincipal: principal, FuncaoSecundaria: secundaria,
+			Intensidade: 4, Elo: 4, Nivel: 0.4, NivelDesejado: "parecido", Filas: []string{"solo_duo"},
+			Servidor: "oficial", TamanhoTribo: "2-3", LimiteGrupo: "trio", Wipe: "sempre"}
+	}
+	score := func(a, b domain.PerfilJogo) float64 {
+		s, _ := Unilateral(base, base, a, b, m)
+		return s
+	}
+	casos := []struct {
+		nome        string
+		a, b        domain.PerfilJogo
+		funcao, esp float64
+	}{
+		// Um vai de jungle e o outro de top, a secundária dele: 0,8 × 0,75 = 0,6.
+		{"LoL Jungle/Top × Jungle/Top", pj(domain.LoL, "lol:jungle", "lol:top"), pj(domain.LoL, "lol:jungle", "lol:top"), 0.6, (5 + 0.6) / 6 * 0.8},
+		{"LoL Jungle × Mid", pj(domain.LoL, "lol:jungle", "lol:top"), pj(domain.LoL, "lol:mid", "lol:top"), 0.9, (5 + 0.9) / 6 * 0.95},
+		{"LoL ADC × Suporte", pj(domain.LoL, "lol:adc", "lol:mid"), pj(domain.LoL, "lol:support", "lol:mid"), 1, 1},
+		{"ARK Builder × Builder", pj(domain.ARK, "ark:builder", ""), pj(domain.ARK, "ark:builder", ""), 0.4, (5 + 0.4) / 6 * 0.7},
+		{"ARK Builder × Breeder", pj(domain.ARK, "ark:builder", ""), pj(domain.ARK, "ark:breeder", ""), 0.9, (5 + 0.9) / 6 * 0.95},
+		{"Rust Eletricista × Eletricista", pj(domain.Rust, "rust:electrician", ""), pj(domain.Rust, "rust:electrician", ""), 0.3, (5 + 0.3) / 6 * 0.65},
+	}
+	for _, c := range casos {
+		s, comp := Unilateral(base, base, c.a, c.b, m)
+		if !quase(comp[Funcao], c.funcao) || !quase(s, c.esp) {
+			t.Errorf("%s: função %.3f e score %.3f, esperado %.3f e %.3f", c.nome, comp[Funcao], s, c.funcao, c.esp)
+		}
+	}
+	// O conflito de rota fica bem abaixo do encaixe ideal, e não 7 pontos abaixo, como antes.
+	if d := score(casos[2].a, casos[2].b) - score(casos[0].a, casos[0].b); d < 0.2 {
+		t.Errorf("ADC × Suporte só %.3f acima de Jungle/Top × Jungle/Top", d)
+	}
+	if FatorFuncao(0) != PisoFatorFuncao || FatorFuncao(1) != 1 {
+		t.Error("o fator deve ir de PisoFatorFuncao (função 0) a 1 (função 1)")
+	}
+}

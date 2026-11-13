@@ -39,10 +39,21 @@ const (
 	PesoPadrao = 3
 	// DescontoSecundaria multiplica o valor do arranjo para cada jogador fora da função principal (D-035).
 	DescontoSecundaria = 0.75
+	// PisoFatorFuncao é o menor valor do fator de função (D-045): com o pior encaixe de funções,
+	// o score cai pela metade; com o encaixe ideal, fica como está.
+	PisoFatorFuncao = 0.5
 )
 
-// Unilateral calcula s(A→B): quanto B serve para A, pelos critérios e pesos de A (D-035).
-// a e b precisam jogar o jogo. O motor nunca lê Persona nem PersonaJogo.
+// FatorFuncao multiplica a média ponderada dos critérios (D-045). A média é compensatória:
+// horários e estilo ótimos escondiam um conflito de funções, que vale só 1/6 dela com os pesos
+// padrão. O fator impede essa compensação sem zerar o par.
+func FatorFuncao(funcao float64) float64 {
+	return PisoFatorFuncao + (1-PisoFatorFuncao)*funcao
+}
+
+// Unilateral calcula s(A→B): quanto B serve para A, pelos critérios e pesos de A (D-035),
+// multiplicado pelo fator de função (D-045). a e b precisam jogar o jogo.
+// O motor nunca lê Persona nem PersonaJogo.
 func Unilateral(a, b domain.Perfil, pa, pb domain.PerfilJogo, m Matriz) (float64, Componentes) {
 	var c Componentes
 	c[Horario] = jaccardBits(a.Disponibilidade, b.Disponibilidade)
@@ -62,7 +73,7 @@ func Unilateral(a, b domain.Perfil, pa, pb domain.PerfilJogo, m Matriz) (float64
 		soma += float64(p) * c[i]
 		total += float64(p)
 	}
-	return soma / total, c
+	return soma / total * FatorFuncao(c[Funcao]), c
 }
 
 // Reciproco é a média harmônica de s(A→B) e s(B→A) (D-015). Se um dos lados é zero, o par é zero.
