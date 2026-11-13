@@ -213,7 +213,7 @@ func (v *verificador) conferirPar(ctx context.Context, eu domain.Perfil, jogo do
 		if _, jaViu := v.interagiu[chave][outro.ID]; jaViu {
 			continue
 		}
-		if seed.PassaFiltros(eu, outro, jogo) {
+		if domain.PassaFiltros(eu, outro, jogo) {
 			esperado[outro.ID] = struct{}{}
 		}
 	}

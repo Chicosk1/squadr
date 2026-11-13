@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Chicosk1/squadr/internal/domain"
 	"github.com/Chicosk1/squadr/internal/matching"
@@ -146,6 +147,11 @@ type diaPagina struct {
 	Horarios []string // ids na ordem dos períodos
 }
 
+// periodoPagina separa "Madrugada (0h–6h)" em nome e faixa, para a grade caber em telas estreitas.
+type periodoPagina struct {
+	Nome, Faixa string
+}
+
 type dadosPagina struct {
 	FaixasEtarias, Regioes, Idiomas, UsosVoz, Compromissos []domain.Opcao
 	NiveisDesejados, FaixasHoras                           []domain.Opcao
@@ -153,9 +159,10 @@ type dadosPagina struct {
 	TamanhosTribo, VersoesRust, ServidoresRust             []domain.Opcao
 	LimitesGrupo, Wipes, Filas, Elos, Pesos                []domain.Opcao
 	Escala                                                 []int // 1 a 5: intensidade e tolerância
-	Periodos                                               []string
+	Periodos                                               []periodoPagina
 	Dias                                                   []diaPagina
 	Jogos                                                  []jogoPagina
+	LimiteCandidatos                                       int // corte da consulta de candidatos (D-029)
 }
 
 func montarDadosPagina(rotulos map[string]string) (dadosPagina, error) {
@@ -167,16 +174,20 @@ func montarDadosPagina(rotulos map[string]string) (dadosPagina, error) {
 		ServidoresARK: domain.ServidoresARK, TamanhosTribo: domain.TamanhosTribo,
 		VersoesRust: domain.VersoesRust, ServidoresRust: domain.ServidoresRust,
 		LimitesGrupo: domain.LimitesGrupo, Wipes: domain.Wipes, Filas: domain.Filas,
-		Periodos: domain.RotulosPeriodos,
-		Escala:   []int{1, 2, 3, 4, 5},
+		Escala:           []int{1, 2, 3, 4, 5},
+		LimiteCandidatos: domain.OpcoesPadrao().Limite,
 		Pesos: []domain.Opcao{
 			{Valor: "horario", Rotulo: "Horários em comum"},
 			{Valor: "intensidade", Rotulo: "Intensidade e compromisso"},
 			{Valor: "modo", Rotulo: "Modo e tipo de servidor"},
-			{Valor: "comunicacao", Rotulo: "Comunicação (voz e toxicidade)"},
+			{Valor: "comunicacao", Rotulo: "Comunicação (voz e trash talk)"},
 			{Valor: "funcao", Rotulo: "Função complementar"},
 			{Valor: "nivel", Rotulo: "Nível do parceiro"},
 		},
+	}
+	for _, rotulo := range domain.RotulosPeriodos {
+		nome, faixa, _ := strings.Cut(rotulo, " (")
+		d.Periodos = append(d.Periodos, periodoPagina{Nome: nome, Faixa: strings.TrimSuffix(faixa, ")")})
 	}
 	for i, nome := range domain.Elos {
 		d.Elos = append(d.Elos, domain.Opcao{Valor: strconv.Itoa(i), Rotulo: nome})

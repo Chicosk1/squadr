@@ -4,432 +4,1335 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>squadr</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='6' height='6' fill='%23879094'/%3E%3Crect x='9' y='1' width='6' height='6' fill='%23879094'/%3E%3Crect x='1' y='9' width='6' height='6' fill='%23879094'/%3E%3Crect x='9' y='9' width='6' height='6' fill='%231d6e8c'/%3E%3C/svg%3E">
 <style>
+  /* Paleta (D-044): base neutra e uma cor por jogo. A cor do jogo escolhido vira o acento da tela. */
   :root {
-    --fundo: #f6f7f9; --cartao: #ffffff; --texto: #1d2129; --suave: #5f6b7a;
-    --borda: #d9dee5; --destaque: #2f6fed; --ok: #1f8a4c; --erro: #c0392b;
+    color-scheme: light dark;
+    --papel: #edefec; --folha: #f9faf8; --tinta: #1b2023; --tinta-2: #596368; --tinta-3: #879094;
+    --linha: #d0d6d3; --linha-2: #e2e6e3; --falha: #b42318;
+    --ark: #4a7a32; --rust: #b4461c; --lol: #1d6e8c;
+    --acento: var(--lol);
+    --f-texto: "Bahnschrift", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --f-estreita: "Bahnschrift SemiCondensed", "Bahnschrift", "Avenir Next Condensed", "Roboto Condensed",
+                  "Arial Narrow", "TeX Gyre Heros Cn", sans-serif;
+    --raio: 4px;
+    --topo: 52px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --fundo: #14171c; --cartao: #1d2128; --texto: #e6e9ee; --suave: #9aa5b4;
-      --borda: #333a45; --destaque: #6b9bff; --ok: #4cc27f; --erro: #ff7b6b;
+      --papel: #131719; --folha: #1a1f22; --tinta: #e3e7e5; --tinta-2: #9ba5a9; --tinta-3: #6e787c;
+      --linha: #2c3437; --linha-2: #232a2d; --falha: #ff8a7a;
+      --ark: #8cc06a; --rust: #ec8456; --lol: #5db6d6;
     }
   }
+  body[data-jogo="ark"] { --acento: var(--ark); }
+  body[data-jogo="rust"] { --acento: var(--rust); }
+  body[data-jogo="lol"] { --acento: var(--lol); }
+  body { --acento-fundo: color-mix(in srgb, var(--acento) 11%, var(--folha)); }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--fundo); color: var(--texto);
-         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { margin: 0 0 4px; font-size: 26px; }
-  h2 { margin: 0 0 12px; font-size: 19px; }
-  .sub { color: var(--suave); margin: 0 0 24px; }
-  section, fieldset.jogo { background: var(--cartao); border: 1px solid var(--borda);
-            border-radius: 10px; padding: 18px; margin-bottom: 18px; }
-  fieldset { border: 0; padding: 0; margin: 0 0 14px; min-width: 0; }
-  legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
-  label { display: inline-flex; align-items: center; gap: 6px; margin: 0 14px 6px 0; }
-  .campo { display: grid; gap: 4px; margin-bottom: 12px; }
-  .campo > span { font-weight: 600; }
-  .linhas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
-  input[type=text], select { font: inherit; color: inherit; background: var(--fundo);
-            border: 1px solid var(--borda); border-radius: 6px; padding: 6px 8px; width: 100%; }
-  button { font: inherit; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer;
-           background: var(--destaque); color: #fff; }
-  button.secundario { background: transparent; color: var(--texto); border: 1px solid var(--borda); }
-  .barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
-  .barra .campo { margin: 0; flex: 1 1 160px; }
-  .grade { overflow-x: auto; }
-  .grade table { border-collapse: collapse; }
-  .grade th, .grade td { padding: 4px 8px; text-align: center; font-weight: normal; }
-  .grade td label { margin: 0; }
-  fieldset.jogo[hidden] { display: none; }
-  details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
-  .aviso { padding: 10px 12px; border-radius: 6px; margin-top: 12px; }
-  .aviso.erro { border: 1px solid var(--erro); color: var(--erro); }
-  .aviso.ok { border: 1px solid var(--ok); color: var(--ok); }
-  .aviso ul { margin: 6px 0 0; padding-left: 18px; }
-  .cartoes { display: grid; gap: 12px; margin-top: 14px; }
-  .cartao { border: 1px solid var(--borda); border-radius: 8px; padding: 12px 14px;
-            display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-  .cartao .info { flex: 1 1 260px; }
-  .cartao .nome { font-weight: 600; }
-  .cartao .meta { color: var(--suave); font-size: 13px; }
-  .chip { display: inline-block; border: 1px solid var(--borda); border-radius: 999px;
-          padding: 1px 8px; font-size: 12px; margin: 4px 4px 0 0; }
-  .score { font-size: 22px; font-weight: 700; min-width: 56px; text-align: right; }
-  .perfil { flex: 1 1 100%; border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 4px;
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px; }
-  .perfil[hidden] { display: none; }
-  .perfil h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
-               color: var(--suave); margin: 0 0 6px; }
-  .perfil dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
-  .perfil dt { color: var(--suave); }
-  .perfil dd { margin: 0; }
-  .mini { border-collapse: collapse; font-size: 11px; }
-  .mini th { font-weight: normal; color: var(--suave); padding: 0 4px; }
-  .mini td { width: 22px; height: 16px; border: 1px solid var(--borda); }
-  .mini td.comum { background: var(--ok); }
-  .mini td.dele { background: color-mix(in srgb, var(--destaque) 35%, transparent); }
-  .mini td.meu { background: color-mix(in srgb, var(--suave) 25%, transparent); }
-  .legenda { font-size: 12px; color: var(--suave); margin-top: 4px; }
-  .legenda i { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 10px; vertical-align: middle; }
-  .comps { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .comps td { padding: 3px 4px; }
-  .comps td.nomec { color: var(--suave); white-space: nowrap; }
-  .barra-v { height: 8px; border-radius: 4px; background: var(--borda); overflow: hidden; min-width: 60px; }
-  .barra-v > div { height: 100%; background: var(--destaque); }
-  .barra-v.outro > div { background: var(--ok); }
+  body { margin: 0; background: var(--papel); color: var(--tinta);
+         font: 14.5px/1.45 var(--f-texto); font-variant-numeric: tabular-nums;
+         -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  h2, h3 { font-family: var(--f-estreita); font-stretch: semi-condensed; font-weight: 600; margin: 0; }
+  :focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .so-folha, .so-celular { display: none !important; }
+
+  .botao { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linha);
+           background: var(--folha); border-radius: var(--raio); padding: 7px 14px; font-size: 14px; }
+  .botao:hover { border-color: var(--tinta-3); }
+  .botao.primario { background: var(--tinta); border-color: var(--tinta); color: var(--folha); }
+  .botao.primario:hover { background: color-mix(in srgb, var(--tinta) 85%, var(--acento)); }
+  .botao.discreto { border-color: transparent; background: none; color: var(--tinta-2); padding-inline: 8px; }
+  .botao.discreto:hover { color: var(--tinta); }
+  .botao:disabled { opacity: .45; cursor: default; }
+
+  /* ---------- Topo ---------- */
+  .topo { position: sticky; top: 0; z-index: 10; display: flex; align-items: stretch; gap: 24px;
+          height: var(--topo); padding: 0 20px; background: var(--folha); border-bottom: 1px solid var(--linha); }
+  .marca { display: inline-flex; align-items: center; gap: 9px; color: var(--tinta); text-decoration: none;
+           font-family: var(--f-estreita); font-stretch: semi-condensed; font-weight: 700; font-size: 21px; letter-spacing: .01em; }
+  /* A marca é a própria grade de horários, em miniatura: quatro vagas, uma ocupada pela cor do jogo. */
+  .marca-grade { display: grid; grid-template-columns: repeat(2, 7px); gap: 2px; }
+  .marca-grade i { height: 7px; background: var(--tinta-3); }
+  .marca-grade i:last-child { background: var(--acento); }
+  .jogos { display: flex; gap: 4px; }
+  .jogo-aba { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; background: none;
+              border-bottom: 3px solid transparent; color: var(--tinta-2); white-space: nowrap;
+              font-family: var(--f-estreita); font-stretch: semi-condensed; font-size: 15.5px; }
+  .jogo-aba::before { content: ""; width: 8px; height: 8px; background: var(--cor); }
+  .jogo-aba:hover { color: var(--tinta); }
+  .jogo-aba[aria-current="true"] { color: var(--tinta); border-bottom-color: var(--cor); font-weight: 600; }
+  [data-jogo="ark"] { --cor: var(--ark); }
+  [data-jogo="rust"] { --cor: var(--rust); }
+  [data-jogo="lol"] { --cor: var(--lol); }
+  .topo .botao.primario { align-self: center; margin-left: auto; }
+
+  /* ---------- Mesa: lista | jogador A | comparação ---------- */
+  .mesa { display: grid; grid-template-columns: 300px minmax(340px, 420px) minmax(440px, 1fr);
+          height: calc(100vh - var(--topo)); height: calc(100dvh - var(--topo)); }
+  .col { min-height: 0; overflow-y: auto; background: var(--folha); border-right: 1px solid var(--linha); }
+  .col-par { background: var(--papel); border-right: 0; }
+  .painel { padding: 20px 24px 40px; }
+  .col-par .painel { max-width: 780px; }
+
+  .col-lista { display: flex; flex-direction: column; overflow: hidden; }
+  .lista-topo { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 16px 10px; }
+  .lista-topo h2 { font-size: 16px; }
+  .lista-topo span { color: var(--tinta-2); font-size: 12.5px; }
+  .filtros { display: grid; gap: 8px; padding: 0 16px 12px; border-bottom: 1px solid var(--linha); }
+  .filtros .segmentado { display: flex; justify-self: stretch; }
+  .filtros .segmentado button { flex: 1; }
+  input[type="search"], input[type="text"], select {
+    width: 100%; background: var(--papel); border: 1px solid var(--linha); border-radius: var(--raio); padding: 7px 10px; }
+  input[type="search"]:hover, input[type="text"]:hover, select:hover { border-color: var(--tinta-3); }
+
+  .jogadores { list-style: none; margin: 0; padding: 0; flex: 1; overflow-y: auto; }
+  .jogadores[aria-busy="true"] { opacity: .55; }
+  .jogador { position: relative; border-bottom: 1px solid var(--linha-2); }
+  .jogador-principal { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center;
+                       width: 100%; padding: 9px 44px 9px 13px; text-align: left; background: none; border: 0;
+                       border-left: 3px solid transparent; }
+  .jogador-principal:hover { background: var(--papel); }
+  .jogador .faixa { grid-row: 1 / 3; }
+  .jogador-nome { font-family: var(--f-estreita); font-stretch: semi-condensed; font-weight: 600; font-size: 15.5px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .jogador-meta { display: flex; gap: 10px; color: var(--tinta-2); font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+  .jogador.e-a .jogador-principal { border-left-color: var(--tinta); background: var(--papel); }
+  .jogador.e-b .jogador-principal { border-left-color: var(--acento); background: var(--acento-fundo); }
+  .jogador-lado { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+  .jogador-comparar { padding: 3px 9px; font-size: 12.5px; opacity: 0; background: var(--folha); }
+  .jogador:hover .jogador-comparar, .jogador-comparar:focus-visible { opacity: 1; }
+  @media (hover: none) { .jogador-comparar { opacity: 1; } }
+  .etiqueta { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--raio);
+              font-family: var(--f-estreita); font-weight: 700; font-size: 13px; background: var(--tinta); color: var(--folha); }
+  .etiqueta.b { background: var(--acento); }
+  .lista-pe { padding: 12px 16px; }
+  .lista-pe .botao { width: 100%; justify-content: center; }
+
+  /* Faixa: a semana de 7 dias × 4 períodos em miniatura. */
+  .faixa { display: grid; grid-template-rows: repeat(4, 5px); grid-auto-flow: column; grid-auto-columns: 5px; gap: 1px; }
+  .faixa i { background: var(--linha-2); }
+  .faixa i.on { background: var(--tinta-3); }
+  .faixa i.comum { background: var(--acento); }
+
+  .vazio { color: var(--tinta-2); padding: 24px 16px; max-width: 46ch; }
+  .vazio p { margin: 0 0 12px; }
+  .col-a .vazio, .col-par .vazio { padding: 40px 24px; }
+  .vazio-titulo { color: var(--tinta); font-family: var(--f-estreita); font-stretch: semi-condensed; font-size: 18px; font-weight: 600; }
+  .erro { color: var(--falha); }
+  [aria-busy="true"] .painel { opacity: .55; transition: opacity .2s; }
+
+  /* ---------- Jogador A ---------- */
+  .cabeca { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .nome-grande { font-size: 27px; line-height: 1.1; }
+  .id { color: var(--tinta-3); font-size: 12.5px; }
+  .fatos { display: grid; grid-template-columns: max-content 1fr; gap: 3px 16px; margin: 14px 0 0; font-size: 13.5px; }
+  .fatos dt { color: var(--tinta-2); }
+  .fatos dd { margin: 0; }
+  .secao { margin-top: 26px; }
+  .secao-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .secao-cab h3 { font-size: 16px; }
+  .secao-cab small { color: var(--tinta-2); font-size: 12.5px; }
+
+  .ranking { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linha-2); }
+  .rank { display: grid; grid-template-columns: 2em 1fr 3.2em; align-items: center; gap: 12px; width: 100%;
+          padding: 8px 8px 8px 4px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linha-2); }
+  .rank:hover { background: var(--papel); }
+  .rank[aria-pressed="true"] { background: var(--acento-fundo); box-shadow: inset 3px 0 var(--acento); }
+  .rank-pos { font-family: var(--f-estreita); color: var(--tinta-3); text-align: right; }
+  .rank-nome { min-width: 0; font-family: var(--f-estreita); font-stretch: semi-condensed; font-weight: 600; font-size: 15px;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-nome small { display: block; font-family: var(--f-texto); font-stretch: normal; font-weight: 400; font-size: 12px;
+                     color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; }
+  .rank-score { font-family: var(--f-estreita); font-weight: 600; font-size: 17px; text-align: right; }
+
+  /* ---------- Semana (grade grande) ---------- */
+  .semana { border-collapse: separate; border-spacing: 3px; font-size: 11.5px; }
+  .semana th { font-family: var(--f-estreita); font-weight: 500; color: var(--tinta-2); padding: 0; }
+  .semana th[scope="row"] { text-align: right; padding-right: 6px; }
+  .semana td { position: relative; width: 34px; height: 24px; padding: 0; overflow: hidden;
+               background: var(--linha-2); border-radius: 2px; }
+  .semana .meia { position: absolute; left: 0; right: 0; height: 50%; opacity: 0;
+                  transition: transform .45s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(var(--d, 0) * 45ms); }
+  .semana .meia.a { top: 0; background: var(--tinta-3); }
+  .semana .meia.b { bottom: 0; background: repeating-linear-gradient(135deg, var(--tinta-3) 0 2px, transparent 2px 5px); }
+  .semana td.so-a .meia.a, .semana td.so-b .meia.b { opacity: 1; }
+  .semana.unica td.so-a .meia { opacity: 1; background: var(--tinta-3); }
+  .semana td.comum .meia { opacity: 1; background: var(--acento); }
+  /* Ao abrir uma comparação, as metades de A e de B deslizam até se encontrar nos horários em comum. */
+  .semana.juntando td.comum .meia.a { transform: translateY(-100%); }
+  .semana.juntando td.comum .meia.b { transform: translateY(100%); }
+  .legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12.5px; color: var(--tinta-2); }
+  .legenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .amostra { position: relative; width: 16px; height: 12px; background: var(--linha-2); border-radius: 2px; overflow: hidden; }
+  .amostra::after { content: ""; position: absolute; left: 0; right: 0; height: 50%; }
+  .amostra.a::after { top: 0; background: var(--tinta-3); }
+  .amostra.b::after { bottom: 0; background: repeating-linear-gradient(135deg, var(--tinta-3) 0 2px, transparent 2px 5px); }
+  .amostra.ab { background: var(--acento); }
+
+  /* ---------- Comparação ---------- */
+  .voltar { margin: -6px 0 12px -8px; }
+  .par-titulo { font-size: 26px; line-height: 1.15; }
+  .par-titulo .x { color: var(--tinta-3); font-weight: 400; margin: 0 .25em; }
+  .veredito { margin: 8px 0 0; max-width: 62ch; }
+  .veredito.barrado { color: var(--falha); }
+  .placar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 16px;
+            margin-top: 20px; padding: 16px 0; border-block: 1px solid var(--linha); }
+  .placar-item .num { display: block; font-family: var(--f-estreita); font-weight: 600; font-size: 30px; line-height: 1; }
+  .placar-item .leg { display: block; margin-top: 6px; font-size: 12.5px; color: var(--tinta-2); }
+  .placar-item.central { text-align: center; padding-inline: 18px; border-inline: 1px solid var(--linha-2); }
+  .placar-item.central .num { font-size: 46px; color: var(--acento); }
+  .placar-item:last-child { text-align: right; }
+  .placar.hipotetico .num { color: var(--tinta-3); }
+  .nota { margin: 10px 0 0; font-size: 13px; color: var(--tinta-2); max-width: 62ch; }
+
+  .filtros-lista { list-style: none; margin: 0; padding: 0; }
+  .filtro { display: grid; grid-template-columns: 1.5em 1fr; column-gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--linha-2); }
+  .filtro .sinal { font-weight: 700; color: var(--tinta-3); }
+  .filtro.barrou .sinal, .filtro.barrou .nome { color: var(--falha); font-weight: 600; }
+  .filtro .motivo { grid-column: 2; color: var(--tinta-2); font-size: 13px; }
+
+  .espelho-cab { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12.5px; color: var(--tinta-2); margin-bottom: 4px; }
+  .espelho-cab span:last-child { text-align: right; }
+  .criterio { padding: 7px 0 8px; border-bottom: 1px solid var(--linha-2); }
+  .criterio-nome { font-size: 13.5px; margin-bottom: 5px; }
+  .criterio.motivo .criterio-nome { font-weight: 600; }
+  .criterio.motivo .criterio-nome small { margin-left: 8px; font-weight: 400; color: var(--acento); }
+  .barras { display: grid; grid-template-columns: 2.8em 1fr 1fr 2.8em; align-items: center; column-gap: 8px; }
+  .barras .v { font-family: var(--f-estreita); font-size: 14px; }
+  .barras .v:last-child { text-align: right; }
+  .trilho { position: relative; height: 10px; background: var(--linha-2); }
+  .trilho b { position: absolute; top: 0; bottom: 0; background: var(--tinta-3); }
+  .trilho.esq { box-shadow: 1px 0 var(--tinta-2); }
+  .trilho.esq b { right: 0; }
+  .trilho.dir b { left: 0; }
+  .criterio.motivo .trilho b { background: var(--acento); }
+
+  .respostas { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .respostas th, .respostas td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--linha-2); text-align: left; vertical-align: top; }
+  .respostas thead th { font-family: var(--f-estreita); font-weight: 600; font-size: 14.5px; }
+  .respostas tbody th { width: 30%; font-weight: 400; color: var(--tinta-2); }
+  .respostas tbody tr:not(.difere) td { color: var(--tinta-2); }
+  .respostas tbody tr.difere td { color: var(--tinta); font-weight: 600; }
+  .respostas tr.grupo th { padding-top: 14px; color: var(--tinta); font-family: var(--f-estreita); font-weight: 600; }
+
+  .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ---------- Cadastro ---------- */
+  dialog.folha-lateral { margin: 0 0 0 auto; padding: 0; width: min(660px, 100vw); max-width: 100vw;
+                         height: 100%; max-height: 100%; border: 0; border-left: 1px solid var(--linha);
+                         background: var(--folha); color: var(--tinta); }
+  dialog::backdrop { background: rgb(12 16 18 / .4); }
+  .form-cadastro { display: flex; flex-direction: column; height: 100%; }
+  .dlg-topo { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 6px; }
+  .dlg-topo h2 { font-size: 21px; }
+  .passos { display: flex; list-style: none; margin: 0; padding: 0 24px; border-bottom: 1px solid var(--linha); counter-reset: passo; }
+  .passos li { flex: 1; min-width: 0; }
+  .passos button { display: flex; align-items: center; gap: 7px; width: 100%; padding: 10px 0 9px; border: 0; background: none;
+                   border-bottom: 3px solid transparent; color: var(--tinta-3); text-align: left; white-space: nowrap;
+                   font-family: var(--f-estreita); font-stretch: semi-condensed; font-size: 14.5px; }
+  .passos button::before { counter-increment: passo; content: counter(passo); display: inline-grid; place-items: center;
+                           flex: none; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 50%; font-size: 12px; }
+  .passos button:disabled { cursor: default; }
+  .passos li.feito button { color: var(--tinta-2); }
+  .passos li[aria-current="step"] button { color: var(--tinta); border-bottom-color: var(--tinta); font-weight: 600; }
+  .dlg-corpo { flex: 1; overflow-y: auto; padding: 20px 24px 28px; }
+  .passo { display: grid; gap: 20px; }
+  .passo[hidden] { display: none; }
+  .passo > h3 { font-size: 20px; }
+  .passo > p { margin: -12px 0 0; color: var(--tinta-2); max-width: 56ch; }
+  .dlg-erros:not(:empty) { padding: 10px 24px; color: var(--falha); border-top: 1px solid var(--linha); font-size: 13.5px; }
+  .dlg-erros p { margin: 0; font-weight: 600; }
+  .dlg-erros ul { margin: 4px 0 0; padding-left: 18px; }
+  .dlg-pe { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px;
+            border-top: 1px solid var(--linha); }
+  .dlg-pe span { color: var(--tinta-2); font-size: 13px; }
+
+  .campo { display: grid; gap: 6px; }
+  .rotulo { font-size: 13.5px; font-weight: 600; }
+  .dica { font-size: 12.5px; color: var(--tinta-2); }
+  .campo-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  .segmentado { display: inline-flex; flex-wrap: wrap; justify-self: start; border: 1px solid var(--linha);
+                border-radius: var(--raio); background: var(--papel); overflow: hidden; }
+  .segmentado label, .fichas label { position: relative; }
+  .segmentado input, .fichas input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .segmentado span, .segmentado button { display: block; padding: 6px 12px; font-size: 13.5px; background: none;
+                                         border: 0; border-right: 1px solid var(--linha); }
+  .segmentado > :last-child span, .segmentado > button:last-child { border-right: 0; }
+  .segmentado input:checked + span, .segmentado button[aria-pressed="true"] { background: var(--tinta); color: var(--folha); }
+  .segmentado input:focus-visible + span { outline: 2px solid var(--acento); outline-offset: -2px; }
+  .segmentado.pequeno span, .segmentado.pequeno button { padding: 5px 9px; font-size: 12.5px; }
+
+  .fichas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fichas span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--linha);
+                 border-radius: var(--raio); background: var(--papel); font-size: 13.5px; }
+  .fichas input:checked + span { background: var(--folha); border-color: var(--cor, var(--tinta)); box-shadow: inset 0 0 0 1px var(--cor, var(--tinta)); }
+  .fichas input:checked + span::before { content: "✓"; font-weight: 700; }
+  .fichas input:focus-visible + span { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .fichas-jogo span::after { content: ""; order: -1; width: 8px; height: 8px; background: var(--cor); }
+
+  .escala { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .escala-ponta { font-size: 12.5px; color: var(--tinta-2); }
+
+  .marcar { display: flex; align-items: center; gap: 10px; }
+  .marcar input { width: 18px; height: 18px; margin: 0; accent-color: var(--tinta); }
+
+  .atalhos { display: flex; flex-wrap: wrap; gap: 6px; }
+  .atalhos button { padding: 3px 9px; font-size: 12.5px; }
+  .pintar { justify-self: start; border-collapse: separate; border-spacing: 3px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pintar th { font-family: var(--f-estreita); font-weight: 500; font-size: 12.5px; color: var(--tinta-2); padding: 0; }
+  .pintar th[scope="row"] { text-align: right; padding-right: 8px; line-height: 1.1; }
+  .pintar th small { display: block; color: var(--tinta-3); font-size: 11px; }
+  .pintar td { padding: 0; }
+  .celula { position: relative; display: block; width: 46px; height: 34px; border-radius: 3px; background: var(--linha-2); cursor: pointer; }
+  .celula:hover { background: color-mix(in srgb, var(--tinta-3) 35%, var(--linha-2)); }
+  .celula input { position: absolute; inset: 0; margin: 0; opacity: 0; pointer-events: none; }
+  .celula:has(input:checked) { background: var(--tinta); }
+  .celula:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 1px; }
+
+  .jogo-cadastro { display: grid; gap: 14px; padding-top: 14px; border-top: 3px solid var(--cor); }
+  .jogo-cadastro[hidden] { display: none; }
+  .jogo-cadastro h4 { margin: 0; font-family: var(--f-estreita); font-stretch: semi-condensed; font-size: 17px; font-weight: 600; }
+  .grade-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 14px; }
+  .pesos { display: grid; gap: 10px; }
+  .peso { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+          padding-bottom: 10px; border-bottom: 1px solid var(--linha-2); }
+
+  .aviso { position: fixed; left: 20px; bottom: 20px; z-index: 50; max-width: min(440px, calc(100vw - 40px));
+           padding: 10px 14px; border-radius: var(--raio); background: var(--tinta); color: var(--folha);
+           transform: translateY(calc(100% + 40px)); transition: transform .25s ease; }
+  .aviso.visivel { transform: none; }
+
+  /* ---------- Telas menores ---------- */
+  @media (max-width: 1279px) {
+    .mesa { grid-template-columns: 300px 1fr; }
+    .col-par { position: fixed; z-index: 20; top: var(--topo); right: 0; bottom: 0; width: min(640px, 94vw);
+               border-left: 1px solid var(--linha); box-shadow: -10px 0 30px rgb(0 0 0 / .1);
+               transform: translateX(100%); visibility: hidden; transition: transform .25s ease, visibility 0s .25s; }
+    .mesa[data-vista="par"] .col-par { transform: none; visibility: visible; transition: transform .25s ease; }
+    .so-folha { display: inline-flex !important; }
+  }
+  @media (max-width: 759px) {
+    :root { --topo: 96px; }
+    .topo { flex-wrap: wrap; align-content: center; gap: 4px 12px; padding: 6px 12px 0; }
+    .jogos { order: 3; width: 100%; overflow-x: auto; height: 40px; }
+    .mesa { grid-template-columns: 1fr; height: auto; }
+    .col { border-right: 0; overflow: visible; }
+    .col-lista { overflow: visible; }
+    .jogadores { overflow: visible; }
+    .mesa:not([data-vista="lista"]) .col-lista { display: none; }
+    .mesa:not([data-vista="a"]) .col-a { display: none; }
+    .col-par { top: 0; width: 100vw; overflow-y: auto; z-index: 30; }
+    .so-celular { display: inline-flex !important; }
+    .painel { padding: 16px 16px 40px; }
+    .placar { grid-template-columns: 1fr 1fr; }
+    .placar-item.central { grid-column: 1 / -1; order: -1; border: 0; padding: 0; text-align: left; }
+    .celula { width: 38px; height: 32px; }
+    .passos button { font-size: 0; gap: 0; }
+    .passos button::before { font-size: 12px; }
+    .passos li[aria-current="step"] button { font-size: 14px; gap: 7px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
 </style>
 </head>
-<body>
-<main>
-  <h1>squadr</h1>
-  <p class="sub">Protótipo do motor de recomendação: encontre parceiros para ARK, Rust e League of Legends.</p>
+<body data-jogo="lol" data-limite="{{.LimiteCandidatos}}"
+      data-horarios="{{range .Dias}}{{range .Horarios}}{{.}} {{end}}{{end}}">
 
-  <section>
-    <h2>Ver recomendações</h2>
-    <form id="busca" class="barra">
-      <div class="campo"><span>Id do usuário</span>
-        <input type="text" name="usuario" placeholder="ex.: u000001" autocomplete="off"></div>
-      <div class="campo"><span>Jogo</span>
-        <select name="jogo">{{range .Jogos}}<option value="{{.ID}}">{{.Rotulo}}</option>{{end}}</select></div>
-      <button type="submit">Buscar</button>
-    </form>
-    <div id="avisoBusca"></div>
-    <div id="resultado"></div>
+<header class="topo">
+  <a class="marca" href="/"><span class="marca-grade" aria-hidden="true"><i></i><i></i><i></i><i></i></span>squadr</a>
+  <nav class="jogos" aria-label="Jogo">
+    {{range .Jogos}}<button type="button" class="jogo-aba" data-jogo="{{.ID}}">{{.Rotulo}}</button>{{end}}
+  </nav>
+  <button type="button" class="botao primario" id="abrirCadastro">Cadastrar jogador</button>
+</header>
+
+<main class="mesa" id="mesa" data-vista="lista">
+  <section class="col col-lista" aria-labelledby="t-jogadores">
+    <div class="lista-topo">
+      <h2 id="t-jogadores">Jogadores</h2>
+      <span id="contagem" aria-live="polite"></span>
+    </div>
+    <div class="filtros">
+      <label><span class="sr">Buscar por nome ou id</span>
+        <input type="search" id="busca" placeholder="Buscar por nome ou id" autocomplete="off" maxlength="40"></label>
+      <label><span class="sr">Região</span>
+        <select id="regiao"><option value="">Todas as regiões</option>{{range .Regioes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+      <div class="segmentado pequeno" role="group" aria-label="Origem">
+        <button type="button" data-origem="" aria-pressed="true">Todos</button>
+        <button type="button" data-origem="seed" aria-pressed="false" title="Gerados pelo seed">Gerados</button>
+        <button type="button" data-origem="formulario" aria-pressed="false" title="Cadastrados pelo formulário">Cadastrados</button>
+      </div>
+    </div>
+    <ol class="jogadores" id="jogadores" aria-label="Jogadores"></ol>
+    <div class="lista-pe" id="listaPe" hidden><button type="button" class="botao" id="maisJogadores">Carregar mais</button></div>
   </section>
 
-  <section>
-    <h2>Cadastro</h2>
-    <form id="cadastro">
-      <label><input type="checkbox" name="maiorDeIdade"> Tenho 18 anos ou mais</label>
-
-      <div class="linhas">
-        <div class="campo"><span>Apelido</span><input type="text" name="nome" maxlength="40"></div>
-        <div class="campo"><span>Região</span>
-          <select name="regiao">{{range .Regioes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-      </div>
-
-      <fieldset><legend>Sua faixa etária</legend>
-        {{range .FaixasEtarias}}<label><input type="radio" name="faixaEtaria" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-      <fieldset><legend>Aceito jogar com</legend>
-        {{range .FaixasEtarias}}<label><input type="checkbox" name="faixasAceitas" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-      <fieldset><legend>Idiomas</legend>
-        {{range .Idiomas}}<label><input type="checkbox" name="idiomas" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-
-      <fieldset><legend>Quando você costuma jogar? (horário de Brasília)</legend>
-        <div class="grade"><table>
-          <tr><th></th>{{range .Periodos}}<th>{{.}}</th>{{end}}</tr>
-          {{range .Dias}}<tr><th>{{.Rotulo}}</th>{{range .Horarios}}<td><label><input type="checkbox" name="horarios" value="{{.}}" aria-label="{{.}}"></label></td>{{end}}</tr>{{end}}
-        </table></div></fieldset>
-
-      <div class="linhas">
-        <fieldset><legend>Usa chat de voz?</legend>
-          {{range .UsosVoz}}<label><input type="radio" name="usaVoz" value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-        <fieldset><legend>Exige voz do parceiro?</legend>
-          <label><input type="checkbox" name="exigeVoz"> Sim</label></fieldset>
-      </div>
-      <div class="linhas">
-        <div class="campo"><span>Tolerância a trash talk (1 = nada, 5 = normal pra mim)</span>
-          <select name="toleranciaToxicidade">{{range .Escala}}<option{{if eq . 3}} selected{{end}}>{{.}}</option>{{end}}</select></div>
-        <div class="campo"><span>O que você procura?</span>
-          <select name="compromisso">{{range .Compromissos}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-      </div>
-
-      <fieldset><legend>Quais jogos você joga?</legend>
-        {{range .Jogos}}<label><input type="checkbox" name="jogos" value="{{.ID}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-
-      {{$d := .}}
-      {{range .Jogos}}
-      <fieldset class="jogo" data-jogo="{{.ID}}" hidden>
-        <legend>{{.Rotulo}}</legend>
-        <div class="linhas">
-          <div class="campo"><span>Intensidade (1 = casual, 5 = competitivo)</span>
-            <select data-campo="intensidade" data-num>{{range $d.Escala}}<option{{if eq . 3}} selected{{end}}>{{.}}</option>{{end}}</select></div>
-          <div class="campo"><span>Nível que prefere no parceiro</span>
-            <select data-campo="nivelDesejado">{{range $d.NiveisDesejados}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Função principal</span>
-            <select data-campo="funcaoPrincipal">{{range .Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Função secundária</span>
-            <select data-campo="funcaoSecundaria"><option value="">Nenhuma</option>{{range .Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          {{if eq .ID "ark"}}
-          <div class="campo"><span>Versão</span><select data-campo="versao">{{range $d.VersoesARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Plataforma</span><select data-campo="plataforma">{{range $d.PlataformasARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Modo</span><select data-campo="modo">{{range $d.ModosARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Servidor</span><select data-campo="servidor">{{range $d.ServidoresARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Tamanho de tribo</span><select data-campo="tamanhoTribo">{{range $d.TamanhosTribo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          {{else if eq .ID "rust"}}
-          <div class="campo"><span>Versão</span><select data-campo="versao">{{range $d.VersoesRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Servidor</span><select data-campo="servidor">{{range $d.ServidoresRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Limite de grupo</span><select data-campo="limiteGrupo">{{range $d.LimitesGrupo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Joga no dia do wipe?</span><select data-campo="wipe">{{range $d.Wipes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <div class="campo"><span>Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          {{else}}
-          <div class="campo"><span>Elo atual</span><select data-campo="elo" data-num><option value="-1">Sem ranked</option>{{range $d.Elos}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></div>
-          <fieldset><legend>Filas</legend>
-            {{range $d.Filas}}<label><input type="checkbox" data-campo="filas" data-lista value="{{.Valor}}"> {{.Rotulo}}</label>{{end}}</fieldset>
-          {{end}}
-        </div>
-      </fieldset>
-      {{end}}
-
-      <details><summary>Quanto cada critério importa para você? (opcional)</summary>
-        <div class="linhas">
-          {{range .Pesos}}<div class="campo"><span>{{.Rotulo}}</span>
-            <select data-peso="{{.Valor}}"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>{{end}}
-        </div>
-      </details>
-
-      <button type="submit">Cadastrar</button>
-      <div id="avisoCadastro"></div>
-    </form>
-  </section>
+  <section class="col col-a" id="painelA" aria-label="Jogador escolhido"></section>
+  <section class="col col-par" id="painelPar" aria-label="Comparação do par"></section>
 </main>
 
-<!-- Modelo da mini-grade de horários do perfil, gerado das mesmas listas do formulário. -->
-<template id="miniGrade">
-  <table class="mini">
-    <tr><th></th>{{range .Periodos}}<th title="{{.}}">{{slice . 0 3}}</th>{{end}}</tr>
-    {{range .Dias}}<tr><th>{{.Rotulo}}</th>{{range .Horarios}}<td data-h="{{.}}" title="{{.}}"></td>{{end}}</tr>{{end}}
+<dialog class="folha-lateral" id="cadastro" aria-labelledby="t-cadastro">
+  <form class="form-cadastro" id="formCadastro" novalidate>
+    <div class="dlg-topo">
+      <h2 id="t-cadastro">Cadastrar jogador</h2>
+      <button type="button" class="botao discreto" id="fecharCadastro">Fechar</button>
+    </div>
+    <ol class="passos" id="passos">
+      <li data-passo="1"><button type="button" data-ir="1">Você</button></li>
+      <li data-passo="2"><button type="button" data-ir="2">Como joga</button></li>
+      <li data-passo="3"><button type="button" data-ir="3">Jogos</button></li>
+      <li data-passo="4"><button type="button" data-ir="4">Prioridades</button></li>
+    </ol>
+
+    <div class="dlg-corpo" id="dlgCorpo">
+      <section class="passo" data-passo="1" aria-labelledby="t-passo1">
+        <h3 id="t-passo1">Você</h3>
+        <p>Essas respostas servem de filtro: só aparece para você quem combina nelas.</p>
+        <label class="campo"><span class="rotulo">Apelido</span>
+          <input type="text" name="nome" maxlength="40" autocomplete="off"></label>
+        <div class="campo" role="radiogroup" aria-labelledby="r-faixa">
+          <span class="rotulo" id="r-faixa">Sua idade</span>
+          <div class="segmentado">{{range .FaixasEtarias}}<label><input type="radio" name="faixaEtaria" value="{{.Valor}}"><span>{{.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        <div class="campo" role="group" aria-labelledby="r-aceitas">
+          <span class="rotulo" id="r-aceitas">Aceita jogar com pessoas de</span>
+          <div class="fichas">{{range .FaixasEtarias}}<label><input type="checkbox" name="faixasAceitas" value="{{.Valor}}" checked><span>{{.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        <div class="campo" role="radiogroup" aria-labelledby="r-regiao">
+          <span class="rotulo" id="r-regiao">Região</span>
+          <div class="segmentado">{{range $i, $o := .Regioes}}<label><input type="radio" name="regiao" value="{{$o.Valor}}"{{if eq $i 0}} checked{{end}}><span>{{$o.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        <div class="campo" role="group" aria-labelledby="r-idiomas">
+          <span class="rotulo" id="r-idiomas">Idiomas que fala no jogo</span>
+          <div class="fichas">{{range $i, $o := .Idiomas}}<label><input type="checkbox" name="idiomas" value="{{$o.Valor}}"{{if eq $i 0}} checked{{end}}><span>{{$o.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        <label class="marcar"><input type="checkbox" name="maiorDeIdade"><span>Tenho 18 anos ou mais</span></label>
+      </section>
+
+      <section class="passo" data-passo="2" aria-labelledby="t-passo2" hidden>
+        <h3 id="t-passo2">Como você joga</h3>
+        <div class="campo">
+          <div class="campo-cab">
+            <span class="rotulo" id="r-horarios">Quando costuma jogar</span>
+            <span class="dica">Horário de Brasília. Clique ou arraste para marcar.</span>
+          </div>
+          <div class="atalhos">
+            <button type="button" class="botao" data-atalho="noites">Noites de semana</button>
+            <button type="button" class="botao" data-atalho="fds">Fim de semana</button>
+            <button type="button" class="botao discreto" data-atalho="limpar">Limpar</button>
+          </div>
+          <table class="pintar" id="gradeCadastro" aria-labelledby="r-horarios">
+            <thead><tr><th></th>{{range .Dias}}<th scope="col">{{.Rotulo}}</th>{{end}}</tr></thead>
+            <tbody>{{range $p, $per := .Periodos}}<tr><th scope="row">{{$per.Nome}}<small>{{$per.Faixa}}</small></th>{{range $.Dias}}<td><label class="celula"><input type="checkbox" name="horarios" value="{{index .Horarios $p}}" aria-label="{{.Rotulo}}, {{$per.Nome}}"></label></td>{{end}}</tr>{{end}}</tbody>
+          </table>
+        </div>
+        <div class="campo" role="radiogroup" aria-labelledby="r-voz">
+          <span class="rotulo" id="r-voz">Usa chat de voz?</span>
+          <div class="segmentado">{{range $i, $o := .UsosVoz}}<label><input type="radio" name="usaVoz" value="{{$o.Valor}}"{{if eq $i 0}} checked{{end}}><span>{{$o.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        <label class="marcar"><input type="checkbox" name="exigeVoz"><span>Só quero parceiros que usem voz</span></label>
+        <div class="campo" role="radiogroup" aria-labelledby="r-tolerancia">
+          <span class="rotulo" id="r-tolerancia">Quanto trash talk você tolera</span>
+          <div class="escala"><span class="escala-ponta">Nenhum</span><div class="segmentado">{{range .Escala}}<label><input type="radio" name="toleranciaToxicidade" value="{{.}}"{{if eq . 3}} checked{{end}}><span>{{.}}</span></label>{{end}}</div><span class="escala-ponta">É normal pra mim</span></div>
+        </div>
+        <div class="campo" role="radiogroup" aria-labelledby="r-compromisso">
+          <span class="rotulo" id="r-compromisso">O que você procura</span>
+          <div class="segmentado">{{range .Compromissos}}<label><input type="radio" name="compromisso" value="{{.Valor}}"{{if eq .Valor "tanto_faz"}} checked{{end}}><span>{{.Rotulo}}</span></label>{{end}}</div>
+        </div>
+      </section>
+
+      <section class="passo" data-passo="3" aria-labelledby="t-passo3" hidden>
+        <h3 id="t-passo3">Jogos</h3>
+        <div class="campo" role="group" aria-labelledby="r-jogos">
+          <span class="rotulo" id="r-jogos">Quais você joga</span>
+          <div class="fichas fichas-jogo">{{range .Jogos}}<label data-jogo="{{.ID}}"><input type="checkbox" name="jogos" value="{{.ID}}"><span>{{.Rotulo}}</span></label>{{end}}</div>
+        </div>
+        {{$d := .}}
+        {{range $j := .Jogos}}
+        <section class="jogo-cadastro" data-jogo="{{$j.ID}}" aria-label="{{$j.Rotulo}}" hidden>
+          <h4>{{$j.Rotulo}}</h4>
+          <div class="grade-campos">
+            <label class="campo"><span class="rotulo">Função principal</span>
+              <select data-campo="funcaoPrincipal">{{range $j.Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Função secundária</span>
+              <select data-campo="funcaoSecundaria"><option value="">Nenhuma</option>{{range $j.Funcoes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            {{if eq $j.ID "ark"}}
+            <label class="campo"><span class="rotulo">Versão</span><select data-campo="versao">{{range $d.VersoesARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Plataforma</span><select data-campo="plataforma">{{range $d.PlataformasARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Modo</span><select data-campo="modo">{{range $d.ModosARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Servidor</span><select data-campo="servidor">{{range $d.ServidoresARK}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Tamanho de tribo</span><select data-campo="tamanhoTribo">{{range $d.TamanhosTribo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            {{else if eq $j.ID "rust"}}
+            <label class="campo"><span class="rotulo">Versão</span><select data-campo="versao">{{range $d.VersoesRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Servidor</span><select data-campo="servidor">{{range $d.ServidoresRust}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Limite de grupo</span><select data-campo="limiteGrupo">{{range $d.LimitesGrupo}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Joga no dia do wipe?</span><select data-campo="wipe">{{range $d.Wipes}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            <label class="campo"><span class="rotulo">Horas de jogo</span><select data-campo="horas">{{range $d.FaixasHoras}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            {{else}}
+            <label class="campo"><span class="rotulo">Elo atual</span><select data-campo="elo" data-num><option value="-1">Sem ranked</option>{{range $d.Elos}}<option value="{{.Valor}}">{{.Rotulo}}</option>{{end}}</select></label>
+            {{end}}
+          </div>
+          {{if eq $j.ID "lol"}}
+          <div class="campo" role="group" aria-label="Filas">
+            <span class="rotulo">Filas</span>
+            <div class="fichas">{{range $d.Filas}}<label><input type="checkbox" data-campo="filas" data-lista value="{{.Valor}}"><span>{{.Rotulo}}</span></label>{{end}}</div>
+          </div>
+          {{end}}
+          <div class="campo" role="radiogroup" aria-label="Intensidade em {{$j.Rotulo}}">
+            <span class="rotulo">Intensidade</span>
+            <div class="escala"><span class="escala-ponta">Casual</span><div class="segmentado">{{range $d.Escala}}<label><input type="radio" name="intensidade-{{$j.ID}}" data-campo="intensidade" data-num value="{{.}}"{{if eq . 3}} checked{{end}}><span>{{.}}</span></label>{{end}}</div><span class="escala-ponta">Competitivo</span></div>
+          </div>
+          <div class="campo" role="radiogroup" aria-label="Nível que prefere no parceiro em {{$j.Rotulo}}">
+            <span class="rotulo">Nível que prefere no parceiro</span>
+            <div class="segmentado">{{range $d.NiveisDesejados}}<label><input type="radio" name="nivel-{{$j.ID}}" data-campo="nivelDesejado" value="{{.Valor}}"{{if eq .Valor "tanto_faz"}} checked{{end}}><span>{{.Rotulo}}</span></label>{{end}}</div>
+          </div>
+        </section>
+        {{end}}
+      </section>
+
+      <section class="passo" data-passo="4" aria-labelledby="t-passo4" hidden>
+        <h3 id="t-passo4">Prioridades</h3>
+        <p>Quanto cada critério pesa no seu score, de 1 a 5. Deixe em 3 se não tiver preferência.</p>
+        <div class="pesos">
+          {{range $peso := .Pesos}}<div class="peso" role="radiogroup" aria-label="{{$peso.Rotulo}}">
+            <span>{{$peso.Rotulo}}</span>
+            <div class="segmentado pequeno">{{range $.Escala}}<label><input type="radio" name="peso-{{$peso.Valor}}" data-peso="{{$peso.Valor}}" value="{{.}}"{{if eq . 3}} checked{{end}}><span>{{.}}</span></label>{{end}}</div>
+          </div>{{end}}
+        </div>
+      </section>
+    </div>
+
+    <div class="dlg-erros" id="errosCadastro" role="alert"></div>
+    <div class="dlg-pe">
+      <button type="button" class="botao" id="voltarPasso">Voltar</button>
+      <span id="progresso">Passo 1 de 4</span>
+      <button type="submit" class="botao primario" id="avancarPasso">Continuar</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+<!-- Grade da semana, gerada das mesmas listas do formulário e clonada pelo script. -->
+<template id="tplSemana">
+  <table class="semana">
+    <thead><tr><th></th>{{range .Dias}}<th scope="col">{{.Rotulo}}</th>{{end}}</tr></thead>
+    <tbody>{{range $p, $per := .Periodos}}<tr><th scope="row">{{$per.Nome}}</th>{{range $i, $dia := $.Dias}}<td data-h="{{index $dia.Horarios $p}}" style="--d: {{$i}}"><i class="meia a"></i><i class="meia b"></i></td>{{end}}</tr>{{end}}</tbody>
   </table>
 </template>
 
 <script>
 "use strict";
+// Textos que vêm de usuários (nomes) entram só por textContent ou atributos, nunca por innerHTML.
+
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 const $$ = (sel, raiz = document) => [...raiz.querySelectorAll(sel)];
 
-// Mostra a seção de cada jogo marcado.
-$$('input[name="jogos"]').forEach(caixa => caixa.addEventListener("change", () => {
-  $(`fieldset.jogo[data-jogo="${caixa.value}"]`).hidden = !caixa.checked;
-}));
+const HORARIOS = document.body.dataset.horarios.trim().split(/\s+/);
+const LIMITE_CANDIDATOS = Number(document.body.dataset.limite);
+const JOGOS = $$(".jogo-aba").map(b => ({ id: b.dataset.jogo, rotulo: b.textContent.trim() }));
+const rotuloJogo = id => (JOGOS.find(j => j.id === id) || { rotulo: id }).rotulo;
+const TAMANHO_RANKING = 20;
 
-function el(tag, classe, texto) {
+function el(tag, props, ...filhos) {
   const e = document.createElement(tag);
-  if (classe) e.className = classe;
-  if (texto !== undefined) e.textContent = texto; // nunca innerHTML: nomes vêm de usuários
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "texto") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "style") e.style.cssText = v;
+    else e.setAttribute(k, v === true ? "" : String(v));
+  }
+  for (const f of filhos.flat()) {
+    if (f !== null && f !== undefined && f !== false) e.append(f instanceof Node ? f : String(f));
+  }
   return e;
 }
 
-function aviso(alvo, tipo, msg, detalhes = []) {
-  alvo.replaceChildren();
-  const caixa = el("div", "aviso " + tipo, msg);
-  if (detalhes.length) {
-    const ul = el("ul");
-    detalhes.forEach(d => ul.append(el("li", "", d)));
-    caixa.append(ul);
+const num = v => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const inteiro = v => Number(v).toLocaleString("pt-BR");
+const maiuscula = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const plural = (n, um, varios) => `${inteiro(n)} ${n === 1 ? um : varios}`;
+
+class ErroAPI extends Error {
+  constructor(status, mensagem, detalhes = []) { super(mensagem); this.status = status; this.detalhes = detalhes; }
+}
+
+async function api(caminho, { metodo = "GET", corpo, sinal } = {}) {
+  let resp;
+  try {
+    resp = await fetch(caminho, {
+      method: metodo, signal: sinal,
+      headers: corpo ? { "Content-Type": "application/json" } : {},
+      body: corpo ? JSON.stringify(corpo) : undefined,
+    });
+  } catch (e) {
+    if (e.name === "AbortError") throw e;
+    throw new ErroAPI(0, "A API não respondeu. Confira se o servidor e o Neo4j estão rodando.");
   }
-  alvo.append(caixa);
-}
-
-async function chamar(metodo, url, corpo) {
-  const resp = await fetch(url, {
-    method: metodo,
-    headers: corpo ? { "Content-Type": "application/json" } : {},
-    body: corpo ? JSON.stringify(corpo) : undefined,
-  });
   const dados = await resp.json().catch(() => ({}));
-  return { status: resp.status, dados };
+  if (!resp.ok) throw new ErroAPI(resp.status, dados.erro || `A API respondeu com erro ${resp.status}.`, dados.detalhes || []);
+  return dados;
 }
 
-// ---------- Cadastro ----------
+let avisoTimer;
+function avisar(texto) {
+  const caixa = $("#aviso");
+  caixa.textContent = texto;
+  caixa.classList.add("visivel");
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => caixa.classList.remove("visivel"), 5000);
+}
 
-function coletar(form) {
+// ---------- Estado, guardado também na URL ----------
+
+const estado = {
+  jogo: "lol", busca: "", regiao: "", origem: "",
+  a: null, b: null,
+  jogadores: [], proximo: "", total: 0,
+  perfilA: null, ranking: [], erroRanking: null,
+  par: null,
+};
+const controles = {};
+
+function abortavel(chave) {
+  controles[chave]?.abort();
+  return (controles[chave] = new AbortController());
+}
+
+function lerURL() {
+  const q = new URLSearchParams(location.search);
+  const jogo = q.get("jogo");
+  estado.jogo = JOGOS.some(j => j.id === jogo) ? jogo : (JOGOS.some(j => j.id === "lol") ? "lol" : JOGOS[0].id);
+  estado.busca = q.get("q") || "";
+  estado.regiao = q.get("regiao") || "";
+  estado.origem = q.get("origem") || "";
+  estado.a = q.get("a") || null;
+  estado.b = estado.a ? q.get("b") || null : null;
+}
+
+function escreverURL(empilhar) {
+  const q = new URLSearchParams({ jogo: estado.jogo });
+  if (estado.busca) q.set("q", estado.busca);
+  if (estado.regiao) q.set("regiao", estado.regiao);
+  if (estado.origem) q.set("origem", estado.origem);
+  if (estado.a) q.set("a", estado.a);
+  if (estado.b) q.set("b", estado.b);
+  const url = "?" + q;
+  if (url !== location.search) history[empilhar ? "pushState" : "replaceState"](null, "", url);
+}
+
+function mostrarVista(vista) {
+  $("#mesa").dataset.vista = vista;
+}
+
+// ---------- Jogo ----------
+
+function aplicarJogo() {
+  document.body.dataset.jogo = estado.jogo;
+  $$(".jogo-aba").forEach(b => b.setAttribute("aria-current", String(b.dataset.jogo === estado.jogo)));
+}
+
+function trocarJogo(id) {
+  if (id === estado.jogo) return;
+  estado.jogo = id;
+  if (estado.perfilA && !estado.perfilA.jogos.some(j => j.jogo === id)) {
+    estado.a = estado.b = null;
+    estado.perfilA = null;
+  }
+  escreverURL(false);
+  aplicarJogo();
+  carregarLista(true);
+  if (estado.a) carregarA(); else desenharA();
+  if (estado.b) carregarPar(); else desenharPar();
+  if (!estado.a) mostrarVista("lista");
+}
+
+// ---------- Lista de jogadores ----------
+
+function faixa(horarios, comuns) {
+  const meus = new Set(horarios);
+  const div = el("span", { class: "faixa", "aria-hidden": "true" });
+  for (const h of HORARIOS) {
+    div.append(el("i", { class: meus.has(h) ? (comuns && comuns.has(h) ? "on comum" : "on") : null }));
+  }
+  return div;
+}
+
+function nivelNoJogo(pj) {
+  if (!pj) return "";
+  const d = pj.detalhes.find(x => x.nome === "Elo" || x.nome === "Horas de jogo");
+  if (!d) return "";
+  return d.nome === "Elo" ? d.valor : `${d.valor.replace(" a ", "–")} h`;
+}
+
+async function carregarLista(reiniciar) {
+  const ctl = abortavel("lista");
+  const ol = $("#jogadores");
+  const q = new URLSearchParams({ jogo: estado.jogo, limite: "50" });
+  if (estado.busca) q.set("q", estado.busca);
+  if (estado.regiao) q.set("regiao", estado.regiao);
+  if (estado.origem) q.set("origem", estado.origem);
+  if (!reiniciar && estado.proximo) q.set("depois", estado.proximo);
+  ol.setAttribute("aria-busy", "true");
+  try {
+    const dados = await api("/usuarios?" + q, { sinal: ctl.signal });
+    if (reiniciar) { estado.jogadores = []; ol.scrollTop = 0; }
+    estado.jogadores.push(...dados.usuarios);
+    estado.proximo = dados.proximo || "";
+    estado.total = dados.total;
+    desenharLista();
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    ol.replaceChildren(el("li", { class: "vazio" },
+      el("p", { class: "erro", texto: e.message }),
+      el("button", { type: "button", class: "botao", texto: "Tentar de novo", onclick: () => carregarLista(true) })));
+    $("#listaPe").hidden = true;
+  } finally {
+    if (controles.lista === ctl) ol.removeAttribute("aria-busy");
+  }
+}
+
+function desenharLista() {
+  const ol = $("#jogadores");
+  const focado = document.activeElement?.closest?.(".jogador")?.dataset.id;
+  $("#contagem").textContent = plural(estado.total, "jogador", "jogadores");
+  if (!estado.jogadores.length) {
+    const filtrado = estado.busca || estado.regiao || estado.origem;
+    ol.replaceChildren(el("li", { class: "vazio" },
+      el("p", { texto: filtrado ? `Ninguém de ${rotuloJogo(estado.jogo)} com esses filtros.`
+                                : `Ninguém joga ${rotuloJogo(estado.jogo)} na base. Rode o seed ou cadastre um jogador.` }),
+      filtrado ? el("button", { type: "button", class: "botao", texto: "Limpar filtros", onclick: limparFiltros }) : null));
+  } else {
+    const comunsA = estado.perfilA ? new Set(estado.perfilA.horarios) : null;
+    ol.replaceChildren(...estado.jogadores.map(p => linhaJogador(p, comunsA)));
+  }
+  $("#listaPe").hidden = !estado.proximo;
+  if (focado) $(`.jogador[data-id="${CSS.escape(focado)}"] .jogador-principal`)?.focus();
+}
+
+function linhaJogador(p, comunsA) {
+  const pj = p.jogos.find(j => j.jogo === estado.jogo);
+  const eA = p.id === estado.a, eB = p.id === estado.b;
+  const li = el("li", { class: "jogador" + (eA ? " e-a" : "") + (eB ? " e-b" : ""), "data-id": p.id });
+  li.append(el("button", {
+    type: "button", class: "jogador-principal", "aria-pressed": String(eA),
+    "aria-label": `${p.nome}, ${pj ? pj.funcaoPrincipal : ""}`,
+    onclick: () => selecionarA(p.id),
+  }, faixa(p.horarios, eA ? null : comunsA),
+     el("span", { class: "jogador-nome", texto: p.nome }),
+     el("span", { class: "jogador-meta" }, el("span", { texto: pj ? pj.funcaoPrincipal : "" }), el("span", { texto: nivelNoJogo(pj) }))));
+
+  const lado = el("span", { class: "jogador-lado" });
+  if (eA) lado.append(el("span", { class: "etiqueta", texto: "A", title: "Jogador escolhido" }));
+  else if (eB) lado.append(el("span", { class: "etiqueta b", texto: "B", title: "Em comparação" }));
+  else if (estado.a) {
+    lado.append(el("button", {
+      type: "button", class: "botao jogador-comparar", texto: "Comparar",
+      "aria-label": `Comparar ${p.nome} com ${estado.perfilA ? estado.perfilA.nome : "o jogador escolhido"}`,
+      onclick: () => selecionarB(p.id),
+    }));
+  }
+  li.append(lado);
+  return li;
+}
+
+function limparFiltros() {
+  estado.busca = estado.regiao = estado.origem = "";
+  sincronizarFiltros();
+  escreverURL(false);
+  carregarLista(true);
+}
+
+function sincronizarFiltros() {
+  $("#busca").value = estado.busca;
+  $("#regiao").value = estado.regiao;
+  $$("[data-origem]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.origem === estado.origem)));
+}
+
+// ---------- Jogador A ----------
+
+function selecionarA(id) {
+  if (id === estado.a) { mostrarVista("a"); return; }
+  estado.a = id;
+  if (estado.b === id) estado.b = null;
+  estado.perfilA = null;
+  escreverURL(true);
+  desenharLista();
+  carregarA();
+  if (estado.b) carregarPar(); else desenharPar();
+  mostrarVista("a");
+}
+
+async function carregarA() {
+  const ctl = abortavel("a");
+  const id = estado.a, jogo = estado.jogo;
+  const painel = $("#painelA");
+  painel.setAttribute("aria-busy", "true");
+  if (!estado.perfilA || estado.perfilA.id !== id) painel.replaceChildren(el("div", { class: "vazio", texto: "Carregando…" }));
+  try {
+    const caminho = `/usuarios/${encodeURIComponent(id)}`;
+    const [perfil, recs] = await Promise.all([
+      api(caminho, { sinal: ctl.signal }),
+      api(`${caminho}/recomendacoes?jogo=${jogo}&k=${TAMANHO_RANKING}`, { sinal: ctl.signal }).catch(e => {
+        if (e.name === "AbortError") throw e;
+        return e;
+      }),
+    ]);
+    estado.perfilA = perfil;
+    estado.erroRanking = recs instanceof Error ? recs : null;
+    estado.ranking = recs instanceof Error ? [] : recs.recomendacoes;
+    desenharA();
+    desenharLista();
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    estado.perfilA = null;
+    painel.replaceChildren(el("div", { class: "vazio" },
+      el("p", { class: "erro", texto: e.status === 404 ? `Não existe jogador com o id ${id}.` : e.message }),
+      el("button", { type: "button", class: "botao", texto: "Tentar de novo", onclick: carregarA })));
+  } finally {
+    if (controles.a === ctl) painel.removeAttribute("aria-busy");
+  }
+}
+
+function semana(horariosA, horariosB, unica) {
+  const tabela = $("#tplSemana").content.firstElementChild.cloneNode(true);
+  const a = new Set(horariosA), b = new Set(horariosB || []);
+  if (unica) tabela.classList.add("unica");
+  $$("td[data-h]", tabela).forEach(td => {
+    const h = td.dataset.h, emA = a.has(h), emB = b.has(h);
+    td.className = emA && emB ? "comum" : emA ? "so-a" : emB ? "so-b" : "";
+  });
+  return tabela;
+}
+
+function definicoes(pares) {
+  const dl = el("dl", { class: "fatos" });
+  for (const [nome, valor] of pares) if (valor) dl.append(el("dt", { texto: nome }), el("dd", { texto: valor }));
+  return dl;
+}
+
+function fatosGerais(p) {
+  return [
+    ["Região", p.regiao], ["Idade", p.faixaEtaria], ["Idiomas", p.idiomas.join(", ")],
+    ["Voz", p.usaVoz + (p.exigeVoz ? ", exige do parceiro" : "")],
+    ["Trash talk", `tolera ${p.toleranciaToxicidade} de 5`], ["Procura", p.compromisso],
+  ];
+}
+
+function desenharA() {
+  const painel = $("#painelA");
+  const p = estado.perfilA;
+  if (!estado.a) {
+    painel.replaceChildren(el("div", { class: "vazio" },
+      el("p", { class: "vazio-titulo", texto: "Escolha um jogador na lista" }),
+      el("p", { texto: "Você vê o ranking que o motor monta para ele e pode comparar qualquer par para entender o score." })));
+    return;
+  }
+  if (!p) return;
+  const pj = p.jogos.find(j => j.jogo === estado.jogo);
+  const jogo = rotuloJogo(estado.jogo);
+
+  const corpo = el("div", { class: "painel" },
+    el("button", { type: "button", class: "botao discreto voltar so-celular", texto: "Voltar para a lista", onclick: () => mostrarVista("lista") }),
+    el("div", { class: "cabeca" }, el("h2", { class: "nome-grande", texto: p.nome }), el("span", { class: "id", texto: p.id })),
+    definicoes(fatosGerais(p)));
+
+  if (pj) {
+    corpo.append(el("div", { class: "secao" },
+      el("div", { class: "secao-cab" }, el("h3", { texto: `Em ${jogo}` })),
+      definicoes([
+        ["Função", pj.funcaoPrincipal + (pj.funcaoSecundaria ? `, depois ${pj.funcaoSecundaria}` : "")],
+        ["Quer parceiro", pj.nivelDesejado],
+        ...pj.detalhes.map(d => [d.nome, d.valor]),
+      ])));
+  }
+
+  corpo.append(el("div", { class: "secao" },
+    el("div", { class: "secao-cab" }, el("h3", { texto: "Horários" }), el("small", { texto: plural(p.horarios.length, "período", "períodos") })),
+    semana(p.horarios, null, true)));
+
+  const secaoRanking = el("div", { class: "secao" },
+    el("div", { class: "secao-cab" },
+      el("h3", { texto: `Melhores parceiros em ${jogo}` }),
+      el("small", { texto: estado.ranking.length ? `os ${estado.ranking.length} primeiros` : "" })));
+  if (estado.erroRanking) {
+    secaoRanking.append(el("p", { class: "nota", texto: estado.erroRanking.status === 422
+      ? `${p.nome} não joga ${jogo}. Escolha outro jogo no topo da tela.` : estado.erroRanking.message }));
+  } else if (!estado.ranking.length) {
+    secaoRanking.append(el("p", { class: "nota", texto:
+      `Ninguém passou nos filtros rígidos para ${p.nome}. Use Comparar na lista para ver qual filtro barra cada pessoa.` }));
+  } else {
+    secaoRanking.append(el("ol", { class: "ranking" }, estado.ranking.map((r, i) => el("li", null, el("button", {
+      type: "button", class: "rank", "aria-pressed": String(r.id === estado.b),
+      "aria-label": `${i + 1}º, ${r.nome}, score ${num(r.score)}`,
+      onclick: () => selecionarB(r.id),
+    },
+      el("span", { class: "rank-pos", texto: String(i + 1) }),
+      el("span", { class: "rank-nome" }, r.nome, el("small", { texto: maiuscula(r.motivos.join(", ")) })),
+      el("span", { class: "rank-score", texto: num(r.score) }))))));
+  }
+  corpo.append(secaoRanking);
+  painel.replaceChildren(corpo);
+}
+
+// ---------- Comparação de um par ----------
+
+function selecionarB(id) {
+  if (!estado.a || id === estado.a) return;
+  estado.b = id;
+  escreverURL(true);
+  marcarB();
+  carregarPar();
+  mostrarVista("par");
+}
+
+function fecharPar() {
+  estado.b = null;
+  estado.par = null;
+  escreverURL(true);
+  marcarB();
+  desenharPar();
+  mostrarVista("a");
+}
+
+// Atualiza só as marcas de B na lista e no ranking, sem redesenhar os painéis.
+function marcarB() {
+  $$(".rank").forEach((b, i) => b.setAttribute("aria-pressed", String(estado.ranking[i]?.id === estado.b)));
+  desenharLista();
+}
+
+async function carregarPar() {
+  if (!estado.a || !estado.b) { desenharPar(); return; }
+  const ctl = abortavel("par");
+  const painel = $("#painelPar");
+  painel.setAttribute("aria-busy", "true");
+  if (!estado.par) painel.replaceChildren(el("div", { class: "vazio", texto: "Carregando…" }));
+  try {
+    estado.par = await api(`/usuarios/${encodeURIComponent(estado.a)}/par/${encodeURIComponent(estado.b)}?jogo=${estado.jogo}`, { sinal: ctl.signal });
+    desenharPar(true);
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    estado.par = null;
+    painel.replaceChildren(el("div", { class: "painel" },
+      el("button", { type: "button", class: "botao discreto voltar so-folha", texto: "Fechar comparação", onclick: fecharPar }),
+      el("p", { class: "erro", texto: e.status === 404 ? "Um dos dois jogadores não existe mais." : e.message })));
+  } finally {
+    if (controles.par === ctl) painel.removeAttribute("aria-busy");
+  }
+}
+
+function veredito(p) {
+  const A = p.a.nome, B = p.b.nome, jogo = rotuloJogo(p.jogo);
+  if (!p.passaFiltros) {
+    const n = p.filtros.filter(f => !f.passou).length;
+    return { barrado: true, texto: `O motor descarta este par antes de calcular o score: ${n === 1 ? "um filtro rígido barra" : `${n} filtros rígidos barram`} a dupla.` };
+  }
+  if (p.posicao > 0) {
+    return { texto: `${B} está em ${p.posicao}º lugar entre os ${plural(p.candidatos, "candidato", "candidatos")} de ${A} em ${jogo}.` };
+  }
+  return { texto: `Passa nos filtros, mas não está no ranking de ${A}: ou ${A} já avaliou ${B} em ${jogo}, ou ${B} ficou fora dos ${inteiro(LIMITE_CANDIDATOS)} candidatos que o grafo entrega.` };
+}
+
+function placar(p) {
+  const A = p.a.nome, B = p.b.nome;
+  const item = (valor, legenda, classe) => el("div", { class: "placar-item" + (classe ? " " + classe : "") },
+    el("span", { class: "num", texto: num(valor) }), el("span", { class: "leg", texto: legenda }));
+  const caixa = el("div", { class: "placar" + (p.passaFiltros ? "" : " hipotetico") },
+    item(p.scoreParaA, `Quanto ${B} atende ${A}`),
+    item(p.reciproco, "Recíproco, média harmônica", "central"),
+    item(p.scoreParaB, `Quanto ${A} atende ${B}`));
+  const notas = [];
+  if (!p.passaFiltros) notas.push(el("p", { class: "nota", texto: "Como o par é barrado antes, o motor nunca chega a esses números. Eles mostram o que ele daria." }));
+  else if (p.posicao > 0 && p.social > 0) notas.push(el("p", { class: "nota", texto: `Somando o sinal social das curtidas, o score final no ranking é ${num(p.score)}.` }));
+  return [caixa, ...notas];
+}
+
+function criterios(p) {
+  const A = p.a.nome, B = p.b.nome;
+  const motivos = new Set(p.passaFiltros ? p.motivos : []);
+  const linhas = p.componentes.map(c => {
+    const motivo = motivos.has(c.nome);
+    return el("div", { class: "criterio" + (motivo ? " motivo" : "") },
+      el("div", { class: "criterio-nome" }, maiuscula(c.nome), motivo && p.passaFiltros ? el("small", { texto: "motivo do match" }) : null),
+      el("div", { class: "barras", role: "img", "aria-label": `${maiuscula(c.nome)}: ${num(c.paraA)} para ${A}, ${num(c.paraB)} para ${B}` },
+        el("span", { class: "v", texto: num(c.paraA) }),
+        el("span", { class: "trilho esq" }, el("b", { style: `width:${c.paraA * 100}%` })),
+        el("span", { class: "trilho dir" }, el("b", { style: `width:${c.paraB * 100}%` })),
+        el("span", { class: "v", texto: num(c.paraB) })));
+  });
+  return el("div", { class: "secao" },
+    el("div", { class: "secao-cab" }, el("h3", { texto: "Os seis critérios" }), el("small", { texto: "cada um de 0 a 1" })),
+    el("div", { class: "espelho-cab" }, el("span", { texto: `Para ${A}` }), el("span", { texto: `Para ${B}` })),
+    linhas);
+}
+
+function respostas(p) {
+  const A = p.a, B = p.b;
+  const ja = A.jogos.find(j => j.jogo === p.jogo), jb = B.jogos.find(j => j.jogo === p.jogo);
+  const naoJoga = "Não joga";
+  const linhas = [];
+  const grupo = titulo => linhas.push(el("tr", { class: "grupo" }, el("th", { colspan: "3", scope: "colgroup", texto: titulo })));
+  const linha = (nome, va, vb) => linhas.push(el("tr", { class: va !== vb ? "difere" : null },
+    el("th", { scope: "row", texto: nome }), el("td", { texto: va }), el("td", { texto: vb })));
+
+  grupo(rotuloJogo(p.jogo));
+  linha("Função principal", ja ? ja.funcaoPrincipal : naoJoga, jb ? jb.funcaoPrincipal : naoJoga);
+  linha("Função secundária", ja ? ja.funcaoSecundaria || "Nenhuma" : naoJoga, jb ? jb.funcaoSecundaria || "Nenhuma" : naoJoga);
+  linha("Quer parceiro", ja ? ja.nivelDesejado : naoJoga, jb ? jb.nivelDesejado : naoJoga);
+  for (const d of (ja || jb).detalhes) {
+    const valor = j => j ? (j.detalhes.find(x => x.nome === d.nome) || { valor: "" }).valor : naoJoga;
+    linha(d.nome, valor(ja), valor(jb));
+  }
+  grupo("Geral");
+  const ga = fatosGerais(A), gb = fatosGerais(B);
+  ga.forEach(([nome, va], i) => linha(nome, va, gb[i][1]));
+
+  return el("div", { class: "secao" },
+    el("div", { class: "secao-cab" }, el("h3", { texto: "Respostas lado a lado" }), el("small", { texto: "em negrito, as que diferem" })),
+    el("table", { class: "respostas" },
+      el("thead", null, el("tr", null, el("th", null, el("span", { class: "sr", texto: "Pergunta" })), el("th", { scope: "col", texto: A.nome }), el("th", { scope: "col", texto: B.nome }))),
+      el("tbody", null, linhas)));
+}
+
+function acoes(p) {
+  const A = p.a.nome, B = p.b.nome;
+  const agir = rota => async ev => {
+    const botoes = $$("button", ev.currentTarget.parentElement);
+    botoes.forEach(b => b.disabled = true);
+    try {
+      const dados = await api(`/usuarios/${encodeURIComponent(p.a.id)}/${rota}`, { metodo: "POST", corpo: { para: p.b.id, jogo: p.jogo } });
+      avisar(rota === "recusas" ? `Recusa gravada. ${B} sai do ranking de ${A}.`
+        : dados.match ? `Deu match: ${B} já tinha curtido ${A}.` : `Curtida gravada. Se ${B} curtir ${A} também, vira match.`);
+      carregarA();
+      carregarPar();
+    } catch (e) {
+      avisar(e.status === 409 ? `${A} já avaliou ${B} em ${rotuloJogo(p.jogo)}.` : e.message);
+      botoes.forEach(b => b.disabled = false);
+    }
+  };
+  return el("div", { class: "secao" },
+    el("div", { class: "secao-cab" }, el("h3", { texto: `Decidir como ${A}` })),
+    el("div", { class: "acoes" },
+      el("button", { type: "button", class: "botao primario", texto: "Curtir", onclick: agir("curtidas") }),
+      el("button", { type: "button", class: "botao", texto: "Recusar", onclick: agir("recusas") })),
+    el("p", { class: "nota", texto: "Grava a decisão no grafo. Depois disso, o cmd/verificar e o cmd/avaliar só voltam a valer após um novo seed." }));
+}
+
+function desenharPar(animar) {
+  const painel = $("#painelPar");
+  const p = estado.par;
+  if (!estado.a || !estado.b || !p) {
+    painel.replaceChildren(el("div", { class: "vazio" },
+      el("p", { class: "vazio-titulo", texto: "Compare dois jogadores" }),
+      el("p", { texto: estado.a
+        ? "Escolha alguém no ranking, ou use Comparar na lista para testar qualquer par, inclusive quem o motor descarta."
+        : "Escolha um jogador na lista. Depois, compare com alguém do ranking dele ou com qualquer outro jogador." })));
+    return;
+  }
+  const v = veredito(p);
+  const grade = semana(p.a.horarios, p.b.horarios, false);
+  const corpo = el("div", { class: "painel" },
+    el("button", { type: "button", class: "botao discreto voltar so-folha", texto: "Fechar comparação", onclick: fecharPar }),
+    el("h2", { class: "par-titulo" }, p.a.nome, el("span", { class: "x", "aria-hidden": "true", texto: "×" }), el("span", { class: "sr", texto: " e " }), p.b.nome),
+    el("p", { class: "veredito" + (v.barrado ? " barrado" : ""), texto: v.texto }),
+    p.calculado ? placar(p) : el("p", { class: "nota", texto: `${p.b.nome} não joga ${rotuloJogo(p.jogo)}, então não existe score para este par.` }),
+    el("div", { class: "secao" },
+      el("div", { class: "secao-cab" }, el("h3", { texto: "Horários" }), el("small", { texto: `${plural(p.horariosComuns.length, "período", "períodos")} em comum` })),
+      grade,
+      el("div", { class: "legenda" },
+        el("span", null, el("i", { class: "amostra a" }), `Só ${p.a.nome}`),
+        el("span", null, el("i", { class: "amostra b" }), `Só ${p.b.nome}`),
+        el("span", null, el("i", { class: "amostra ab" }), "Os dois"))),
+    el("div", { class: "secao" },
+      el("div", { class: "secao-cab" }, el("h3", { texto: "Filtros rígidos" }), el("small", { texto: "o par precisa passar em todos" })),
+      el("ul", { class: "filtros-lista" }, p.filtros.map(f => el("li", { class: "filtro " + (f.passou ? "passou" : "barrou") },
+        el("span", { class: "sinal", "aria-hidden": "true", texto: f.passou ? "✓" : "✕" }),
+        el("span", { class: "nome" }, el("span", { class: "sr", texto: f.passou ? "Passou: " : "Barrou: " }), f.nome),
+        f.motivo ? el("span", { class: "motivo", texto: f.motivo }) : null)))),
+    p.calculado ? criterios(p) : null,
+    respostas(p),
+    p.calculado ? acoes(p) : null);
+
+  painel.replaceChildren(corpo);
+  painel.scrollTop = 0;
+  if (animar && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    grade.classList.add("juntando");
+    requestAnimationFrame(() => requestAnimationFrame(() => grade.classList.remove("juntando")));
+  }
+}
+
+// ---------- Cadastro em quatro passos ----------
+
+const dlg = $("#cadastro");
+const form = $("#formCadastro");
+const TOTAL_PASSOS = 4;
+let passo = 1, maiorPasso = 1;
+
+function irPara(n) {
+  passo = n;
+  maiorPasso = Math.max(maiorPasso, n);
+  $$(".passo", form).forEach(s => s.hidden = Number(s.dataset.passo) !== n);
+  $$("#passos li").forEach(li => {
+    const i = Number(li.dataset.passo);
+    if (i === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    li.classList.toggle("feito", i < maiorPasso && i !== n);
+    $("button", li).disabled = i > maiorPasso;
+  });
+  $("#voltarPasso").disabled = n === 1;
+  $("#avancarPasso").textContent = n === TOTAL_PASSOS ? "Cadastrar jogador" : "Continuar";
+  $("#progresso").textContent = `Passo ${n} de ${TOTAL_PASSOS}`;
+  $("#dlgCorpo").scrollTop = 0;
+  $("#errosCadastro").replaceChildren();
+}
+
+function mostrarErros(titulo, itens) {
+  const caixa = $("#errosCadastro");
+  caixa.replaceChildren(el("p", { texto: titulo }), itens.length ? el("ul", null, itens.map(i => el("li", { texto: i }))) : null);
+}
+
+function jogosMarcados() {
+  return $$('input[name="jogos"]:checked', form).map(c => c.value);
+}
+
+function validarPasso(n) {
+  const f = new FormData(form);
+  const erros = [];
+  if (n === 1) {
+    if (!String(f.get("nome") || "").trim()) erros.push("Escolha um apelido.");
+    if (!f.get("faixaEtaria")) erros.push("Marque a sua idade.");
+    if (!f.getAll("faixasAceitas").length) erros.push("Marque ao menos uma idade com quem aceita jogar.");
+    if (!f.getAll("idiomas").length) erros.push("Marque ao menos um idioma.");
+    if (!f.has("maiorDeIdade")) erros.push("O squadr é só para maiores de 18 anos.");
+  } else if (n === 2) {
+    if (!f.getAll("horarios").length) erros.push("Marque ao menos um horário na grade.");
+  } else if (n === 3) {
+    const jogos = jogosMarcados();
+    if (!jogos.length) erros.push("Escolha ao menos um jogo.");
+    for (const jogo of jogos) {
+      const secao = $(`.jogo-cadastro[data-jogo="${jogo}"]`, form);
+      const principal = $('[data-campo="funcaoPrincipal"]', secao).value;
+      if ($('[data-campo="funcaoSecundaria"]', secao).value === principal) {
+        erros.push(`${rotuloJogo(jogo)}: a função secundária precisa ser diferente da principal.`);
+      }
+      if (jogo === "lol" && !$$('[data-campo="filas"]:checked', secao).length) {
+        erros.push("League of Legends: marque ao menos uma fila.");
+      }
+    }
+  }
+  return erros;
+}
+
+function coletar() {
   const f = new FormData(form);
   const dados = {
     maiorDeIdade: f.has("maiorDeIdade"),
-    nome: f.get("nome").trim(),
+    nome: String(f.get("nome") || "").trim(),
     faixaEtaria: f.get("faixaEtaria") || "",
     faixasAceitas: f.getAll("faixasAceitas"),
-    regiao: f.get("regiao"),
+    regiao: f.get("regiao") || "",
     idiomas: f.getAll("idiomas"),
     horarios: f.getAll("horarios"),
     usaVoz: f.get("usaVoz") || "",
     exigeVoz: f.has("exigeVoz"),
     toleranciaToxicidade: Number(f.get("toleranciaToxicidade")),
-    compromisso: f.get("compromisso"),
+    compromisso: f.get("compromisso") || "",
     pesos: {},
     jogos: [],
   };
-  $$("[data-peso]", form).forEach(s => dados.pesos[s.dataset.peso] = Number(s.value));
-  for (const jogo of f.getAll("jogos")) {
+  $$("[data-peso]:checked", form).forEach(r => dados.pesos[r.dataset.peso] = Number(r.value));
+  for (const jogo of jogosMarcados()) {
     const item = { jogo };
-    $$("[data-campo]", $(`fieldset.jogo[data-jogo="${jogo}"]`)).forEach(c => {
+    for (const c of $$("[data-campo]", $(`.jogo-cadastro[data-jogo="${jogo}"]`, form))) {
       const nome = c.dataset.campo;
       if ("lista" in c.dataset) {
         item[nome] = item[nome] || [];
         if (c.checked) item[nome].push(c.value);
+      } else if (c.type === "radio") {
+        if (c.checked) item[nome] = "num" in c.dataset ? Number(c.value) : c.value;
       } else {
         item[nome] = "num" in c.dataset ? Number(c.value) : c.value;
       }
-    });
+    }
     dados.jogos.push(item);
   }
   return dados;
 }
 
-$("#cadastro").addEventListener("submit", async ev => {
-  ev.preventDefault();
-  const alvo = $("#avisoCadastro");
-  const dados = coletar(ev.target);
-  const { status, dados: resp } = await chamar("POST", "/usuarios", dados);
-  if (status !== 201) {
-    aviso(alvo, "erro", resp.erro || "Falha no cadastro.", resp.detalhes || []);
-    return;
+async function enviarCadastro() {
+  const dados = coletar();
+  const botao = $("#avancarPasso");
+  botao.disabled = true;
+  try {
+    const { id } = await api("/usuarios", { metodo: "POST", corpo: dados });
+    dlg.close();
+    form.reset();
+    $$(".jogo-cadastro", form).forEach(s => s.hidden = true);
+    passo = maiorPasso = 1;
+    estado.jogo = dados.jogos[0].jogo;
+    estado.origem = "formulario";
+    estado.busca = estado.regiao = "";
+    sincronizarFiltros();
+    estado.a = id;
+    estado.b = null;
+    estado.perfilA = estado.par = null;
+    escreverURL(true);
+    aplicarJogo();
+    carregarLista(true);
+    carregarA();
+    desenharPar();
+    mostrarVista("a");
+    avisar(`${dados.nome} foi cadastrado. A lista agora mostra quem veio do formulário, e ao lado está o ranking em ${rotuloJogo(estado.jogo)}.`);
+  } catch (e) {
+    mostrarErros(e.status === 400 ? "A API recusou o cadastro:" : e.message, e.detalhes || []);
+  } finally {
+    botao.disabled = false;
   }
-  aviso(alvo, "ok", `Cadastro feito. Seu id é ${resp.id}.`);
-  const busca = $("#busca");
-  busca.usuario.value = resp.id;
-  busca.jogo.value = dados.jogos[0].jogo;
-  buscar();
-  busca.scrollIntoView({ behavior: "smooth" });
+}
+
+form.addEventListener("submit", ev => {
+  ev.preventDefault();
+  const erros = validarPasso(passo);
+  if (erros.length) { mostrarErros("Antes de continuar:", erros); return; }
+  if (passo < TOTAL_PASSOS) irPara(passo + 1); else enviarCadastro();
+});
+$("#voltarPasso").addEventListener("click", () => irPara(Math.max(1, passo - 1)));
+$$("#passos button").forEach(b => b.addEventListener("click", () => irPara(Number(b.dataset.ir))));
+$("#fecharCadastro").addEventListener("click", () => dlg.close());
+$("#abrirCadastro").addEventListener("click", () => {
+  irPara(passo);
+  dlg.showModal();
+  $('input[name="nome"]', form).focus();
+});
+dlg.addEventListener("click", ev => { if (ev.target === dlg) dlg.close(); }); // clique fora da folha
+
+$$('input[name="jogos"]', form).forEach(c => c.addEventListener("change", () => {
+  $(`.jogo-cadastro[data-jogo="${c.value}"]`, form).hidden = !c.checked;
+}));
+
+// Grade de horários: clique ou arraste para marcar; o primeiro quadrado decide se marca ou desmarca.
+const grade = $("#gradeCadastro");
+let pintando = null;
+grade.addEventListener("pointerdown", ev => {
+  const celula = ev.target.closest(".celula");
+  if (!celula || ev.button !== 0) return;
+  ev.preventDefault();
+  const caixa = $("input", celula);
+  pintando = !caixa.checked;
+  caixa.checked = pintando;
+  caixa.focus({ preventScroll: true });
+  grade.setPointerCapture(ev.pointerId);
+});
+grade.addEventListener("pointermove", ev => {
+  if (pintando === null) return;
+  const celula = document.elementFromPoint(ev.clientX, ev.clientY)?.closest(".celula");
+  if (celula && grade.contains(celula)) $("input", celula).checked = pintando;
+});
+["pointerup", "pointercancel"].forEach(t => grade.addEventListener(t, () => pintando = null));
+// O clique do mouse já foi tratado no pointerdown; só o teclado (detail 0) usa o clique nativo.
+grade.addEventListener("click", ev => { if (ev.detail > 0 && ev.target.closest(".celula")) ev.preventDefault(); });
+
+const ATALHOS = {
+  noites: h => /^(seg|ter|qua|qui|sex)-noite$/.test(h),
+  fds: h => /^(sab|dom)-(manha|tarde|noite)$/.test(h),
+  limpar: () => false,
+};
+$$("[data-atalho]").forEach(b => b.addEventListener("click", () => {
+  const regra = ATALHOS[b.dataset.atalho];
+  $$('input[name="horarios"]', form).forEach(c => {
+    if (b.dataset.atalho === "limpar") c.checked = false;
+    else if (regra(c.value)) c.checked = true;
+  });
+}));
+
+// ---------- Ligações da tela ----------
+
+$$(".jogo-aba").forEach(b => b.addEventListener("click", () => trocarJogo(b.dataset.jogo)));
+
+let buscaTimer;
+$("#busca").addEventListener("input", ev => {
+  clearTimeout(buscaTimer);
+  buscaTimer = setTimeout(() => {
+    estado.busca = ev.target.value.trim();
+    escreverURL(false);
+    carregarLista(true);
+  }, 250);
+});
+$("#regiao").addEventListener("change", ev => {
+  estado.regiao = ev.target.value;
+  escreverURL(false);
+  carregarLista(true);
+});
+$$("[data-origem]").forEach(b => b.addEventListener("click", () => {
+  estado.origem = b.dataset.origem;
+  sincronizarFiltros();
+  escreverURL(false);
+  carregarLista(true);
+}));
+$("#maisJogadores").addEventListener("click", () => carregarLista(false));
+
+// Setas para cima e para baixo andam pela lista; Home e End vão para as pontas.
+$("#jogadores").addEventListener("keydown", ev => {
+  const teclas = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity };
+  if (!(ev.key in teclas)) return;
+  const botoes = $$(".jogador-principal");
+  const atual = botoes.indexOf(document.activeElement.closest(".jogador")?.querySelector(".jogador-principal"));
+  const passo = teclas[ev.key];
+  const destino = Number.isFinite(passo) ? Math.min(botoes.length - 1, Math.max(0, atual + passo)) : passo < 0 ? 0 : botoes.length - 1;
+  botoes[destino]?.focus();
+  ev.preventDefault();
 });
 
-// ---------- Recomendações ----------
+// "/" leva para a busca, como em muitas listas.
+document.addEventListener("keydown", ev => {
+  if (ev.key === "/" && !ev.target.closest("input, select, textarea, dialog")) {
+    ev.preventDefault();
+    $("#busca").focus();
+  }
+});
 
-// O perfil de quem busca é lido uma vez por busca, para destacar os horários em comum.
-let meuPerfil = null;
+window.addEventListener("popstate", () => {
+  const antes = { ...estado };
+  lerURL();
+  sincronizarFiltros();
+  aplicarJogo();
+  if (antes.jogo !== estado.jogo || antes.busca !== estado.busca || antes.regiao !== estado.regiao || antes.origem !== estado.origem) {
+    carregarLista(true);
+  }
+  if (estado.a !== antes.a || estado.jogo !== antes.jogo) {
+    estado.perfilA = null;
+    if (estado.a) carregarA(); else desenharA();
+  } else {
+    desenharLista();
+  }
+  if (estado.b !== antes.b || estado.a !== antes.a || estado.jogo !== antes.jogo) {
+    estado.par = null;
+    if (estado.b) carregarPar(); else desenharPar();
+    marcarB();
+  }
+  mostrarVista(estado.b ? "par" : estado.a ? "a" : "lista");
+});
 
-async function buscar() {
-  const form = $("#busca");
-  const id = form.usuario.value.trim(), jogo = form.jogo.value;
-  const alvo = $("#avisoBusca"), lista = $("#resultado");
-  lista.replaceChildren();
-  alvo.replaceChildren();
-  if (!id) return aviso(alvo, "erro", "Informe o id do usuário.");
-  const { status, dados } = await chamar("GET",
-    `/usuarios/${encodeURIComponent(id)}/recomendacoes?jogo=${encodeURIComponent(jogo)}`);
-  if (status !== 200) return aviso(alvo, "erro", dados.erro || "Falha na busca.");
+// ---------- Início ----------
 
-  meuPerfil = chamar("GET", `/usuarios/${encodeURIComponent(id)}`).then(r => r.status === 200 ? r.dados : null);
-  if (!dados.recomendacoes.length) return aviso(alvo, "erro", "Nenhum candidato passou nos filtros.");
-  const cartoes = el("div", "cartoes");
-  dados.recomendacoes.forEach(r => cartoes.append(cartao(id, jogo, r, alvo)));
-  lista.append(cartoes);
-}
-
-const pct = v => Math.round(v * 100) + "%";
-
-// ---------- Perfil do candidato ----------
-
-function definicoes(pares) {
-  const dl = el("dl");
-  pares.forEach(([nome, valor]) => dl.append(el("dt", "", nome), el("dd", "", valor)));
-  return dl;
-}
-
-function bloco(titulo, ...filhos) {
-  const div = el("div");
-  div.append(el("h3", "", titulo), ...filhos);
-  return div;
-}
-
-function miniGrade(deles, meus) {
-  const tabela = $("#miniGrade").content.cloneNode(true);
-  $$("td[data-h]", tabela).forEach(td => {
-    const h = td.dataset.h, dele = deles.has(h), meu = meus.has(h);
-    td.className = dele && meu ? "comum" : dele ? "dele" : meu ? "meu" : "";
-  });
-  const div = el("div");
-  const legenda = el("div", "legenda");
-  [["comum", "em comum"], ["dele", "só da pessoa"], ["meu", "só seu"]].forEach(([classe, texto]) => {
-    const marca = el("i", "");
-    marca.style.background = `var(--${classe === "comum" ? "ok" : classe === "dele" ? "destaque" : "suave"})`;
-    legenda.append(marca, texto);
-  });
-  div.append(tabela, legenda);
-  return div;
-}
-
-function barra(valor, classe) {
-  const b = el("div", "barra-v " + classe);
-  const preenchido = el("div");
-  preenchido.style.width = pct(valor);
-  b.append(preenchido);
-  b.title = pct(valor);
-  return b;
-}
-
-function tabelaComponentes(componentes) {
-  const t = el("table", "comps");
-  const cab = el("tr");
-  cab.append(el("td"), el("td", "nomec", "bom para você"), el("td", "nomec", "você é bom para a pessoa"));
-  t.append(cab);
-  componentes.forEach(c => {
-    const tr = el("tr"), a = el("td"), b = el("td");
-    a.append(barra(c.paraVoce, ""));
-    b.append(barra(c.paraCandidato, "outro"));
-    tr.append(el("td", "nomec", c.nome), a, b);
-    t.append(tr);
-  });
-  return t;
-}
-
-async function preencherPerfil(painel, r, jogo) {
-  const { status, dados: p } = await chamar("GET", `/usuarios/${encodeURIComponent(r.id)}`);
-  if (status !== 200) return aviso(painel, "erro", p.erro || "Falha ao carregar o perfil.");
-  const eu = await meuPerfil;
-  const doJogo = p.jogos.find(j => j.jogo === jogo);
-  const outros = p.jogos.filter(j => j.jogo !== jogo).map(j => j.rotulo);
-
-  painel.replaceChildren(
-    bloco("Perfil", definicoes([
-      ["Faixa etária", p.faixaEtaria], ["Região", p.regiao], ["Idiomas", p.idiomas.join(", ")],
-      ["Voz", p.usaVoz + (p.exigeVoz ? " (exige do parceiro)" : "")],
-      ["Trash talk", `tolera ${p.toleranciaToxicidade} de 5`], ["Procura", p.compromisso],
-      ...(outros.length ? [["Também joga", outros.join(", ")]] : []),
-    ])),
-    bloco(doJogo.rotulo, definicoes([
-      ["Função", doJogo.funcaoPrincipal + (doJogo.funcaoSecundaria ? ` (secundária: ${doJogo.funcaoSecundaria})` : "")],
-      ["Prefere parceiro", doJogo.nivelDesejado],
-      ...doJogo.detalhes.map(d => [d.nome, d.valor]),
-    ])),
-    bloco("Horários", miniGrade(new Set(p.horarios), new Set(eu ? eu.horarios : []))),
-    bloco("Por que o score", tabelaComponentes(r.componentes)),
-  );
-}
-
-function cartao(eu, jogo, r, alvo) {
-  const c = el("div", "cartao");
-  const info = el("div", "info");
-  info.append(el("div", "nome", r.nome), el("div", "meta",
-    `${r.id} · bom para você: ${pct(r.scoreParaVoce)} · você é bom para a pessoa: ${pct(r.scoreParaCandidato)}`));
-  const motivos = el("div");
-  r.motivos.forEach(m => motivos.append(el("span", "chip", m)));
-  info.append(motivos);
-
-  const curtir = el("button", "", "Curtir");
-  const recusar = el("button", "secundario", "Recusar");
-  const agir = rota => async () => {
-    const { status, dados } = await chamar("POST",
-      `/usuarios/${encodeURIComponent(eu)}/${rota}`, { para: r.id, jogo });
-    if (status === 201 || status === 409) c.remove();
-    if (status === 201 && dados.match) aviso(alvo, "ok", `É um match com ${r.nome}!`);
-    else if (status !== 201 && status !== 409) aviso(alvo, "erro", dados.erro || "Falha.");
-  };
-  curtir.addEventListener("click", agir("curtidas"));
-  recusar.addEventListener("click", agir("recusas"));
-
-  // O perfil só é buscado na primeira vez que o painel abre.
-  const verPerfil = el("button", "secundario", "Ver perfil");
-  const painel = el("div", "perfil");
-  painel.hidden = true;
-  let carregado = false;
-  verPerfil.addEventListener("click", () => {
-    painel.hidden = !painel.hidden;
-    verPerfil.textContent = painel.hidden ? "Ver perfil" : "Ocultar perfil";
-    if (!carregado && !painel.hidden) {
-      carregado = true;
-      painel.append(el("div", "", "Carregando..."));
-      preencherPerfil(painel, r, jogo);
-    }
-  });
-
-  c.append(info, el("div", "score", pct(r.score)), verPerfil, curtir, recusar, painel);
-  return c;
-}
-
-$("#busca").addEventListener("submit", ev => { ev.preventDefault(); buscar(); });
+lerURL();
+aplicarJogo();
+sincronizarFiltros();
+irPara(1);
+carregarLista(true);
+if (estado.a) carregarA(); else desenharA();
+if (estado.b) carregarPar(); else desenharPar();
+mostrarVista(estado.b ? "par" : estado.a ? "a" : "lista");
 </script>
 </body>
 </html>

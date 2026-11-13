@@ -30,7 +30,6 @@ var (
 	niveisDesejados = igual("parecido", "mais_experiente", "tanto_faz")
 	compromissos    = igual("fixo", "eventual", "tanto_faz")
 
-
 	adjetivos = []string{"Sombrio", "Veloz", "Calmo", "Feroz", "Astuto", "Noturno", "Mistico", "Bravo",
 		"Gelado", "Ardente", "Furtivo", "Lendario", "Tranquilo", "Selvagem", "Letal", "Sereno"}
 	substantivos = []string{"Lobo", "Dragao", "Falcao", "Urso", "Raptor", "Corvo", "Tigre", "Golem",

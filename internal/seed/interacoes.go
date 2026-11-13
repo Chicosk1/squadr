@@ -35,7 +35,7 @@ func (g *Gerador) GerarInteracoes(perfis []domain.Perfil) []domain.Interacao {
 				tentados[j] = struct{}{}
 
 				outro := perfis[j]
-				if !PassaFiltros(eu, outro, pj.Jogo) {
+				if !domain.PassaFiltros(eu, outro, pj.Jogo) {
 					continue
 				}
 				aceitos++

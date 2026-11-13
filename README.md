@@ -78,7 +78,7 @@ curl http://localhost:8080/saude
 
 No PowerShell, use `curl.exe` no lugar de `curl`. A resposta esperada é `{"banco":"ok","status":"ok"}`.
 
-Para ter usuários para recomendar, carregue os dados mock com `go run ./cmd/seed` (**apaga todos os usuários**, inclusive os cadastrados pelo formulário) antes de iniciar a API. O formulário fica em <http://localhost:8080/>.
+Para ter usuários para recomendar, carregue os dados mock com `go run ./cmd/seed` (**apaga todos os usuários**, inclusive os cadastrados pelo formulário) antes de iniciar a API. A tela de exploração e o cadastro ficam em <http://localhost:8080/>.
 
 ## API
 
@@ -86,16 +86,19 @@ Detalhes do contrato na D-039 (`docs/decisoes.md`). Erros vêm como `{"erro": ".
 
 | Rota | Descrição |
 |---|---|
-| `GET /` | Formulário de cadastro e tela de recomendações |
+| `GET /` | Tela de exploração (lista de jogadores, ranking e comparação de pares) e cadastro em passos (D-044) |
 | `GET /saude` | Estado da API e do banco |
+| `GET /usuarios?jogo=lol&regiao=AS&q=lobo&origem=seed&limite=50&depois=u000050` | Lista paginada de perfis públicos, com o total do filtro (D-043) |
 | `GET /usuarios/{id}` | Perfil público do usuário (sem persona, pesos nem faixas aceitas, D-042) |
 | `GET /usuarios/{id}/recomendacoes?jogo=lol&k=10` | Os `k` melhores parceiros (1 a 50, padrão 10), com score, motivo do match e os seis componentes do score nos dois sentidos |
+| `GET /usuarios/{id}/par/{outro}?jogo=lol` | Explica um par: filtros rígidos com o motivo de cada um, scores nos dois sentidos, componentes e posição no ranking (D-043) |
 | `POST /usuarios` | Cadastra um perfil (respostas do `docs/questionario.md`) e devolve o id gerado |
 | `POST /usuarios/{id}/curtidas` | Curte `{"para": "u000002", "jogo": "lol"}`; devolve `{"match": true}` se a curtida for recíproca |
 | `POST /usuarios/{id}/recusas` | Recusa, com o mesmo corpo |
 
 ```bash
 curl "http://localhost:8080/usuarios/u000001/recomendacoes?jogo=lol&k=3"
+curl "http://localhost:8080/usuarios/u000001/par/u000002?jogo=lol"
 curl -X POST http://localhost:8080/usuarios/u000001/curtidas -d '{"para":"u000002","jogo":"lol"}'
 ```
 

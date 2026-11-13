@@ -2,7 +2,9 @@ package matching
 
 import (
 	"context"
+	"errors"
 	"math"
+	"math/bits"
 	"os"
 	"reflect"
 	"regexp"
@@ -63,7 +65,7 @@ func (f *fonteMemoria) BuscarCandidatos(_ context.Context, id string, jogo domai
 	}
 	var saida []domain.Candidato
 	for _, p := range f.perfis {
-		if p.ID != id && seed.PassaFiltros(eu, p, jogo) {
+		if p.ID != id && domain.PassaFiltros(eu, p, jogo) {
 			saida = append(saida, domain.Candidato{ID: p.ID, SinalSocial: f.social[p.ID]})
 		}
 	}
@@ -254,7 +256,7 @@ func TestAprendizGrinder(t *testing.T) {
 	for _, a := range aprendizes {
 		pa, _ := a.PerfilDoJogo(domain.Rust)
 		for _, g := range grinders {
-			if !seed.PassaFiltros(a, g, domain.Rust) {
+			if !domain.PassaFiltros(a, g, domain.Rust) {
 				continue
 			}
 			pg, _ := g.PerfilDoJogo(domain.Rust)
@@ -266,7 +268,7 @@ func TestAprendizGrinder(t *testing.T) {
 			nAG++
 		}
 		for _, b := range aprendizes {
-			if a.ID == b.ID || !seed.PassaFiltros(a, b, domain.Rust) {
+			if a.ID == b.ID || !domain.PassaFiltros(a, b, domain.Rust) {
 				continue
 			}
 			pb, _ := b.PerfilDoJogo(domain.Rust)
@@ -384,6 +386,92 @@ func TestIgnoraPersona(t *testing.T) {
 			if !reflect.DeepEqual(a, b) {
 				t.Fatalf("%s em %s: o ranking mudou ao alterar a persona", eu.ID, pj.Jogo)
 			}
+		}
+	}
+}
+
+// ---------- Explicação de um par ----------
+
+func TestExplicar(t *testing.T) {
+	perfis := gerar(t, 400)
+	f := &fonteMemoria{perfis: perfis, pares: paresDoScript(t)}
+	r := novoRecomendador(t, f)
+	ctx := context.Background()
+
+	// Um usuário com pelo menos 3 candidatos no primeiro jogo dele.
+	var eu domain.Perfil
+	var jogo domain.Jogo
+	var ranking []Recomendacao
+	for _, p := range perfis {
+		recs, err := r.Pontuar(ctx, p.ID, p.Jogos[0].Jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) >= 3 {
+			eu, jogo, ranking = p, p.Jogos[0].Jogo, recs
+			break
+		}
+	}
+	if len(ranking) < 3 {
+		t.Fatal("nenhum usuário com 3 candidatos")
+	}
+
+	// Um candidato do ranking: a explicação repete os números do ranking.
+	for pos, rec := range ranking[:3] {
+		e, err := r.Explicar(ctx, eu.ID, rec.ID, jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.Posicao != pos+1 || e.Candidatos != len(ranking) || !e.Calculado {
+			t.Errorf("%s: posição %d de %d, esperado %d de %d", rec.ID, e.Posicao, e.Candidatos, pos+1, len(ranking))
+		}
+		if !quase(e.ScoreAB, rec.ScoreAB) || !quase(e.ScoreBA, rec.ScoreBA) ||
+			!quase(e.Reciproco, rec.Reciproco) || !quase(e.Score, rec.Score) || e.DeA != rec.DeA {
+			t.Errorf("%s: a explicação não bate com o ranking", rec.ID)
+		}
+		comuns := bits.OnesCount32(e.HorariosComuns)
+		if e.PassaFiltros != (comuns >= 1) {
+			t.Errorf("%s: passa=%v com %d horários em comum", rec.ID, e.PassaFiltros, comuns)
+		}
+	}
+
+	// Alguém barrado por um filtro: fora do ranking, com o motivo, mas com score calculado se joga.
+	for _, outro := range perfis[1:] {
+		if domain.PassaFiltros(eu, outro, jogo) {
+			continue
+		}
+		e, err := r.Explicar(ctx, eu.ID, outro.ID, jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.PassaFiltros || e.Posicao != 0 {
+			t.Fatalf("%s: barrado, mas passa=%v posição=%d", outro.ID, e.PassaFiltros, e.Posicao)
+		}
+		barrou := false
+		for _, fl := range e.Filtros {
+			if !fl.Passou {
+				barrou = true
+				if fl.Motivo == "" {
+					t.Errorf("%s: filtro %q barrou sem motivo", outro.ID, fl.Nome)
+				}
+			}
+		}
+		_, joga := outro.PerfilDoJogo(jogo)
+		if !barrou || e.Calculado != joga {
+			t.Errorf("%s: barrou=%v calculado=%v joga=%v", outro.ID, barrou, e.Calculado, joga)
+		}
+		break
+	}
+
+	if _, err := r.Explicar(ctx, eu.ID, "nao-existe", jogo); !errors.Is(err, ErrUsuarioNaoEncontrado) {
+		t.Errorf("B inexistente: erro %v", err)
+	}
+	for _, j := range domain.Jogos {
+		if _, joga := eu.PerfilDoJogo(j); !joga {
+			if _, err := r.Explicar(ctx, eu.ID, ranking[0].ID, j); !errors.Is(err, ErrNaoJoga) {
+				t.Errorf("A não joga %s: erro %v", j, err)
+			}
+			break
 		}
 	}
 }

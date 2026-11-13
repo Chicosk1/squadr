@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,11 +39,43 @@ func (r *recFalso) Recomendar(_ context.Context, id string, jogo domain.Jogo, k 
 	return nil, fmt.Errorf("%w: %s", matching.ErrNaoJoga, id)
 }
 
+func (r *recFalso) Explicar(_ context.Context, idA, idB string, jogo domain.Jogo) (matching.Explicacao, error) {
+	jogos, ok := r.joga[idA]
+	if !ok || idB == "u9" {
+		return matching.Explicacao{}, fmt.Errorf("%w: %s", domain.ErrNaoEncontrado, idA)
+	}
+	if !slices.Contains(jogos, jogo) {
+		return matching.Explicacao{}, fmt.Errorf("%w: %s", matching.ErrNaoJoga, idA)
+	}
+	a := perfilU2()
+	a.ID, a.Nome = idA, "Um"
+	return matching.Explicacao{
+		A: a, B: perfilU2(),
+		Filtros: []domain.Filtro{
+			{Nome: "Mesma região", Passou: true},
+			{Nome: "Fila em comum", Passou: false, Motivo: "ARAM × Flex"},
+		},
+		HorariosComuns: 1 << 19,
+		Calculado:      true,
+		ScoreAB:        0.7, ScoreBA: 0.5, Reciproco: 2 * 0.7 * 0.5 / 1.2,
+		DeA:        matching.Componentes{0.5, 1, 0, 1, 0.9, 0.25},
+		DeB:        matching.Componentes{0.5, 0.75, 0, 1, 0.9, 1},
+		Motivos:    []string{"comunicação"},
+		Candidatos: 2,
+	}, nil
+}
+
 type repoFalso struct {
 	criados  []domain.Perfil
 	curtidas map[[3]string]bool // de, para, jogo
 	joga     map[string]bool
 	perfis   map[string]domain.Perfil
+	filtro   domain.FiltroUsuarios // o último filtro recebido por ListarUsuarios
+}
+
+func (r *repoFalso) ListarUsuarios(_ context.Context, f domain.FiltroUsuarios) (domain.PaginaUsuarios, error) {
+	r.filtro = f
+	return domain.PaginaUsuarios{Perfis: []domain.Perfil{perfilU2()}, Total: 1}, nil
 }
 
 func (r *repoFalso) Ping(context.Context) error { return nil }
@@ -129,14 +162,18 @@ func TestPagina(t *testing.T) {
 		t.Fatalf("status %d", w.Code)
 	}
 	html := w.Body.String()
-	if n := strings.Count(html, `name="horarios"`); n != domain.NumHorarios {
-		t.Errorf("a grade tem %d horários, esperado %d", n, domain.NumHorarios)
+	if n := strings.Count(html, `name="horarios" value="`); n != domain.NumHorarios {
+		t.Errorf("a grade do cadastro tem %d horários, esperado %d", n, domain.NumHorarios)
 	}
-	if n := strings.Count(html, `data-h="`); n != domain.NumHorarios {
-		t.Errorf("a mini-grade do perfil tem %d horários, esperado %d", n, domain.NumHorarios)
+	if n := strings.Count(html, `<td data-h="`); n != domain.NumHorarios {
+		t.Errorf("a grade da comparação tem %d horários, esperado %d", n, domain.NumHorarios)
+	}
+	if !strings.Contains(html, `data-horarios="seg-madrugada seg-manha`) || !strings.Contains(html, `data-limite="300"`) {
+		t.Error("a página deveria levar a ordem dos horários e o corte de candidatos para o script")
 	}
 	for _, trecho := range []string{"Coletor", `value="ark:gatherer"`, `data-campo="tamanhoTribo"`,
-		`data-campo="wipe"`, `data-campo="filas"`, "Desafiante"} {
+		`data-campo="wipe"`, `data-campo="filas"`, "Desafiante", `id="painelPar"`,
+		"Madrugada<small>0h–6h</small>", `data-peso="comunicacao"`} {
 		if !strings.Contains(html, trecho) {
 			t.Errorf("a página não tem %q", trecho)
 		}
@@ -413,5 +450,88 @@ func TestComponentesNaRecomendacao(t *testing.T) {
 	}
 	if r.Recomendacoes[0].Componentes[matching.Funcao].Nome != "funções complementares" {
 		t.Errorf("ordem ou nome dos componentes errado: %+v", r.Recomendacoes[0].Componentes)
+	}
+}
+
+// ---------- Exploração (D-043) ----------
+
+func TestListarUsuarios(t *testing.T) {
+	a := novoAmbiente(t)
+	w := a.chamar("GET", "/usuarios", "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", w.Code, w.Body)
+	}
+	for _, proibido := range []string{"PERSONA", "persona", "pesos", "faixasAceitas"} {
+		if strings.Contains(w.Body.String(), proibido) {
+			t.Errorf("a lista expõe %q: %s", proibido, w.Body)
+		}
+	}
+	var r respostaUsuarios
+	lerJSON(t, w, &r)
+	if r.Total != 1 || len(r.Usuarios) != 1 || r.Usuarios[0].Nome != "Dois" || r.Proximo != "" {
+		t.Errorf("resposta inesperada: %+v", r)
+	}
+	if a.repo.filtro != (domain.FiltroUsuarios{Limite: LimitePadraoLista}) {
+		t.Errorf("sem parâmetros, o filtro deveria ser vazio com o limite padrão: %+v", a.repo.filtro)
+	}
+
+	w = a.chamar("GET", "/usuarios?jogo=lol&regiao=EU&q=%20AnA%20&origem=formulario&depois=u000010&limite=20", "")
+	esperado := domain.FiltroUsuarios{Jogo: domain.LoL, Regiao: "EU", Busca: "ana", PrefixoID: "w", Depois: "u000010", Limite: 20}
+	if w.Code != http.StatusOK || a.repo.filtro != esperado {
+		t.Errorf("status %d, filtro %+v, esperado %+v", w.Code, a.repo.filtro, esperado)
+	}
+
+	for _, url := range []string{
+		"/usuarios?jogo=dota", "/usuarios?regiao=BR", "/usuarios?origem=x",
+		"/usuarios?limite=0", "/usuarios?limite=101", "/usuarios?limite=dez",
+		"/usuarios?q=" + strings.Repeat("a", TamanhoMaxBusca+1),
+	} {
+		if w := a.chamar("GET", url, ""); w.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, esperado 400", url, w.Code)
+		}
+	}
+}
+
+func TestPar(t *testing.T) {
+	a := novoAmbiente(t)
+	w := a.chamar("GET", "/usuarios/u1/par/u2?jogo=lol", "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", w.Code, w.Body)
+	}
+	for _, proibido := range []string{"PERSONA", "persona", "pesos", "faixasAceitas"} {
+		if strings.Contains(w.Body.String(), proibido) {
+			t.Errorf("a comparação expõe %q: %s", proibido, w.Body)
+		}
+	}
+	var r respostaPar
+	lerJSON(t, w, &r)
+	if r.A.ID != "u1" || r.B.ID != "u2" || r.PassaFiltros || !r.Calculado || r.Posicao != 0 || r.Candidatos != 2 {
+		t.Errorf("cabeçalho errado: %+v", r)
+	}
+	if len(r.Filtros) != 2 || r.Filtros[0].Motivo != "" || r.Filtros[1] != (filtroJSON{"Fila em comum", false, "ARAM × Flex"}) {
+		t.Errorf("filtros errados: %+v", r.Filtros)
+	}
+	if strings.Join(r.Comuns, ",") != "sex-noite" {
+		t.Errorf("horários em comum: %v", r.Comuns)
+	}
+	if len(r.Componentes) != int(matching.NumComponentes) ||
+		r.Componentes[matching.Nivel] != (componentePar{"nível", 0.25, 1}) {
+		t.Errorf("componentes errados: %+v", r.Componentes)
+	}
+
+	casos := []struct {
+		url    string
+		status int
+	}{
+		{"/usuarios/u1/par/u2", http.StatusBadRequest},
+		{"/usuarios/u1/par/u1?jogo=lol", http.StatusBadRequest},
+		{"/usuarios/u9/par/u2?jogo=lol", http.StatusNotFound},
+		{"/usuarios/u1/par/u9?jogo=lol", http.StatusNotFound},
+		{"/usuarios/u1/par/u2?jogo=ark", http.StatusUnprocessableEntity},
+	}
+	for _, c := range casos {
+		if w := a.chamar("GET", c.url, ""); w.Code != c.status {
+			t.Errorf("%s: status %d, esperado %d (%s)", c.url, w.Code, c.status, w.Body)
+		}
 	}
 }
