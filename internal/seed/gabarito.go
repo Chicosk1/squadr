@@ -1,85 +1,8 @@
 package seed
 
-import (
-	"slices"
-
-	"github.com/Chicosk1/squadr/internal/domain"
-)
+import "github.com/Chicosk1/squadr/internal/domain"
 
 const PersonaMulti = "MULTI-CASUAL"
-
-func PassaFiltros(a, b domain.Perfil, jogo domain.Jogo) bool {
-	pa, okA := a.PerfilDoJogo(jogo)
-	pb, okB := b.PerfilDoJogo(jogo)
-	if !okA || !okB {
-		return false
-	}
-	if a.Regiao != b.Regiao {
-		return false
-	}
-	if !slices.Contains(a.FaixasAceitas, b.FaixaEtaria) || !slices.Contains(b.FaixasAceitas, a.FaixaEtaria) {
-		return false
-	}
-	if !temEmComum(a.Idiomas, b.Idiomas) {
-		return false
-	}
-
-	switch jogo {
-	case domain.ARK:
-		return pa.Versao == pb.Versao &&
-			grupoPlataforma(pa.Plataforma) == grupoPlataforma(pb.Plataforma) &&
-			modoCompativel(pa.Modo, pb.Modo)
-	case domain.Rust:
-		return pa.Versao == pb.Versao
-	case domain.LoL:
-		return filasCompativeis(pa, pb)
-	}
-	return false
-}
-
-func temEmComum(a, b []string) bool {
-	for _, x := range a {
-		if slices.Contains(b, x) {
-			return true
-		}
-	}
-	return false
-}
-
-func grupoPlataforma(p string) string {
-	if p == "pc_steam" || p == "pc_epic" {
-		return "pc"
-	}
-	return p
-}
-
-func modoCompativel(a, b string) bool {
-	return a == b || a == "ambos" || b == "ambos"
-}
-
-func filasCompativeis(a, b domain.PerfilJogo) bool {
-	for _, fila := range a.Filas {
-		if !slices.Contains(b.Filas, fila) {
-			continue
-		}
-		if fila == "solo_duo" && !eloCompativel(a.Elo, b.Elo) {
-			continue
-		}
-		return true
-	}
-	return false
-}
-
-func eloCompativel(a, b int) bool {
-	if a == domain.SemRanked || b == domain.SemRanked {
-		return false
-	}
-	diff := a - b
-	if diff < 0 {
-		diff = -diff
-	}
-	return diff <= domain.MaxDiffEloDuo
-}
 
 // ---------- Gabarito de relevância ----------
 

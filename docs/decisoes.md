@@ -381,7 +381,7 @@ O db hit é uma unidade abstrata de trabalho do banco; a métrica que vale para 
 ## D-035 — Fórmulas do score unilateral
 
 - **Data:** 10/11/2026
-- **Status:** Aceita (os valores numéricos são premissas heurísticas, como na D-010)
+- **Status:** Aceita (os valores numéricos são premissas heurísticas, como na D-010). A fórmula final do score ganhou o fator de função na D-045
 - **Contexto:** o plano definia os seis componentes do score s(A→B) e os pesos P01 a P06, mas não as fórmulas de cada componente.
 - **Opções consideradas:**
   - **Função:** máximo entre os arranjos, com desconto para a secundária; média ponderada dos quatro arranjos.
@@ -512,3 +512,73 @@ O db hit é uma unidade abstrata de trabalho do banco; a métrica que vale para 
   - Na página, "Ver perfil" abre o perfil, uma mini-grade com os horários em comum e as barras dos componentes.
 - **Motivo:** um tipo público separado faz com que um campo novo no domínio não vaze sem alguém decidir que ele é público. Mostrar os componentes nos dois sentidos torna visível a assimetria (D-035) e a reciprocidade (D-015). É o que justifica um par com score alto para um lado e baixo para o outro.
 - **Consequências:** qualquer pessoa com o id vê o perfil público; sem autenticação (trabalho futuro), isso é aceitável só no protótipo. O teste `TestPerfilPublico` falha se `persona`, `pesos` ou `faixasAceitas` aparecerem na resposta.
+
+## D-043 — Exploração da base: lista de usuários, comparação de pares e filtros com motivo
+
+- **Data:** 12/11/2026
+- **Status:** Proposta
+- **Contexto:** a página só mostrava as recomendações de um id digitado. Para a reunião com o orientador, para a banca e para o estudo com jogadores, é preciso navegar pela base e explicar um par qualquer, inclusive um que o motor descarta ("por que esses dois não deram match?"). O oráculo dos filtros (`seed.PassaFiltros`) só respondia sim ou não e morava no pacote do gerador de dados.
+- **Opções consideradas:**
+  - **Motivo dos filtros:** uma terceira implementação só para a tela; ou o próprio oráculo devolvendo cada filtro com o motivo.
+  - **Explicação do par:** montar no handler; ou um método do `matching.Recomendador`, testável sem banco.
+  - **Paginação da lista:** `SKIP`/`LIMIT`; ou por chave (`id > depois`).
+- **Decisão:**
+  - `domain.Filtros(a, b, jogo)` devolve todos os filtros rígidos, na ordem, com `Passou` e `Motivo` (por exemplo, "Solo/Duo, Flex × ARAM"). `domain.PassaFiltros` passa a ser o oráculo do `cmd/verificar`, do `cmd/avaliar` e do gerador de interações. Os testes do oráculo foram para `domain/filtros_test.go`.
+  - `matching.Recomendador.Explicar(a, b, jogo)` junta os filtros, o mínimo de horários da consulta, o score nos dois sentidos (calculado mesmo quando o par é barrado, se B joga o jogo), os motivos e a posição de B no ranking de A.
+  - Rotas novas:
+
+    | Rota | Sucesso | Erros |
+    |---|---|---|
+    | `GET /usuarios?jogo=&regiao=&q=&origem=&depois=&limite=` | 200, `{"usuarios", "total", "proximo"?}` com perfis públicos, em ordem de id | 400 parâmetro inválido (`limite` de 1 a 100, padrão 50; `origem` = `formulario` ou `seed`; busca até 40 caracteres) |
+    | `GET /usuarios/{id}/par/{outro}?jogo=` | 200, perfis públicos dos dois, filtros, horários em comum, scores, seis componentes, motivos, posição e tamanho do ranking | 400 jogo inválido ou ids iguais; 404 usuário; 422 A não joga o jogo |
+
+  - A busca procura um trecho do nome ou o começo do id, sem diferenciar maiúsculas. A origem usa o prefixo do id (D-039).
+- **Motivo:** com o oráculo explicando cada filtro, a tela e a verificação diferencial usam as mesmas regras em Go, e o Cypher continua independente (uma implementação nunca chama a outra). A explicação no `matching` reaproveita `Unilateral`, `Reciproco` e `Pontuar`, então os números da comparação são os mesmos do ranking (`TestExplicar`). A paginação por chave usa o índice da constraint `usuario_id` e não fica mais lenta nas últimas páginas.
+- **Consequências:** a comparação roda o ranking inteiro de A (cerca de 70 ms, D-037). Quando B passa nos filtros mas não está no ranking, a tela não sabe se foi porque A já avaliou B ou por causa do corte de 300 candidatos (D-029), e diz as duas possibilidades. A lista expõe só perfis públicos (D-042); `TestListarUsuarios` e `TestPar` falham se aparecer persona, pesos ou faixas aceitas.
+
+## D-044 — Página de exploração e cadastro em passos
+
+- **Data:** 12/11/2026
+- **Status:** Proposta
+- **Contexto:** a página da D-041 era um formulário longo seguido de uma busca por id. Ela será a interface avaliada pelo SUS e a usada na demonstração, então precisa ser rápida de entender e de usar.
+- **Opções consideradas:** manter a página e só melhorar o visual; reorganizar em uma mesa de trabalho com lista, jogador escolhido e comparação; adotar um framework de front-end.
+- **Decisão:** a página continua única, embutida e sem dependências (D-041), agora em três colunas:
+  - **Jogadores:** lista paginada do jogo escolhido, com busca, região e origem. Cada linha mostra a semana do jogador em miniatura; com um jogador escolhido, os horários em comum com ele aparecem na cor do jogo.
+  - **Jogador A:** perfil público, grade de horários e os 20 primeiros do ranking, com os dois motivos de cada um.
+  - **Comparação A × B:** veredito, score nos dois sentidos e recíproco, grade com os horários sobrepostos (a única animação da página), filtros com motivo, os seis critérios em barras espelhadas e as respostas lado a lado, com as diferentes em destaque. Dá para curtir ou recusar como A.
+  - **Cadastro** em painel lateral com quatro passos (você, como joga, jogos, prioridades), valores padrão e grade de horários que se marca arrastando. Ao salvar, o novo jogador vira o A da tela.
+  - O jogo, a busca e os jogadores escolhidos ficam na URL (o botão voltar funciona). Abaixo de 1280 px a comparação vira um painel lateral; abaixo de 760 px, uma coluna por vez.
+  - Visual: base neutra e uma cor por jogo, que vira o acento da tela; fontes do sistema (Bahnschrift no Windows, em duas larguras), sem arquivos de fonte; tema claro e escuro.
+- **Motivo:** a comparação de pares é o que explica o motor na apresentação e responde "por que não deu match". O cadastro em passos com valores padrão encurta o formulário sem mudar as perguntas (o vocabulário continua vindo do `domain`, D-038). Fontes do sistema mantêm o binário único e a página funcionando sem internet.
+- **Consequências:** curtir e recusar pela tela de comparação mudam a base, como na D-039. A página depende de recursos de navegadores atuais (`:has`, `color-mix`, `dialog`). O teste `TestPagina` confere a grade de 28 horários do cadastro e da comparação, o vocabulário e o corte de candidatos levado ao script.
+
+## D-045 — Fator de função no score e secundária obrigatória no LoL
+
+- **Data:** 13/11/2026
+- **Status:** Proposta
+- **Contexto:** na tela de comparação (D-044), dois jogadores de LoL iguais em tudo e que só jogam Jungle tinham score 0,85, e dois Jungle/Top tinham 0,93. Pela D-035, a função é um dos seis termos de uma média ponderada: com os pesos padrão, vale 1/6 do score, e a diferença entre o pior e o melhor encaixe de funções era de só 15 pontos. A média é compensatória: horários e estilo ótimos escondem um conflito de rota. No LoL, que tem um jogador por posição, esse conflito quase inviabiliza a dupla; no ARK e no Rust, as funções pesavam pouco pelo mesmo motivo.
+- **Opções consideradas:**
+  - Aumentar o peso da função: os pesos são de cada usuário, não de cada jogo, e com peso 5 o pior caso ainda ficava em 0,78.
+  - Baixar os valores da matriz ou o desconto da secundária: a função continuaria limitada a 1/6 do score.
+  - Filtro rígido de posições no LoL (Cypher e oráculo): barraria a dupla impossível, mas com a secundária obrigatória ele nunca dispararia (abaixo).
+  - Média geométrica ponderada de todos os critérios: muda o modelo inteiro, e qualquer critério zerado zera o par.
+  - Fator multiplicativo só para a função.
+- **Decisão:**
+  - s(A→B) = (Σ pᵢ·cᵢ / Σ pᵢ) × F, com F = 0,5 + 0,5 × c_função (`matching.FatorFuncao`, `PisoFatorFuncao` = 0,5), nos três jogos. A função continua na média, com o peso que o jogador escolheu (a preferência dele); o fator representa a regra do jogo e impede a compensação. Com a função ideal, F = 1; com a pior, o score cai pela metade.
+  - No LoL, a função secundária passa a ser obrigatória, exceto para quem escolhe Preencher (`domain.FuncaoPreencher`), como no cliente do jogo. Com duas posições diferentes por jogador, quaisquer dois jogadores têm uma divisão possível: se a principal de B coincide com a de A, A vai de secundária. Por isso não há filtro novo no grafo.
+  - A comparação de pares (D-043) devolve `fatorFuncao`, e a tela mostra o fator no critério de função e no placar.
+- **Motivo:** o fator mantém a média (e os pesos do jogador) e só acrescenta o que a média não expressa: um encaixe ruim não pode ser compensado. É a mesma ideia de veto ou penalidade de métodos de decisão multicritério, sem o efeito da média geométrica de zerar o par por qualquer critério. A diferença entre os jogos fica na matriz (D-010): mesma posição vale 0,1 no LoL e 0,3 a 0,8 no ARK e no Rust, então o fator pesa mais onde o conflito é real. Dois jogadores iguais, mudando só as funções:
+
+  | Par | Função | Antes | Agora |
+  |---|---|---|---|
+  | LoL Jungle/Top × Jungle/Top | 0,60 | 0,93 | 0,75 |
+  | LoL Jungle × Mid | 0,90 | 0,98 | 0,93 |
+  | LoL ADC × Suporte | 1,00 | 1,00 | 1,00 |
+  | ARK Builder × Builder | 0,40 | 0,90 | 0,63 |
+  | Rust Eletricista × Eletricista | 0,30 | 0,88 | 0,57 |
+
+- **Consequências:**
+  - O 0,5 é mais uma premissa heurística e entra na análise de sensibilidade, junto com o desconto de 0,75 e a matriz.
+  - Todos os scores mudam, então os números da D-037 precisam ser medidos de novo. No caso de controle (D-035), s(aprendiz→grinder) = 0,579, s(grinder→aprendiz) = 0,399 e recíproco = 0,472, contra 0,589 de aprendiz × aprendiz; a ordem continua a mesma.
+  - Usuários de LoL cadastrados antes, sem secundária, continuam na base até o próximo seed e podem formar a dupla impossível; para eles, o fator limita o score a 0,55.
+  - Testes: `TestFatorFuncao` (tabela acima e distância mínima entre ADC × Suporte e Jungle/Top × Jungle/Top), `TestSecundariaPreencher` e o caso "LoL sem secundária" em `TestCriarUsuarioInvalido`.

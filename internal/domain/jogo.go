@@ -16,4 +16,7 @@ var Funcoes = map[Jogo][]string{
 	LoL:  {"lol:top", "lol:jungle", "lol:mid", "lol:adc", "lol:support", "lol:fill"},
 }
 
+// FuncaoPreencher é a única posição do LoL que dispensa a secundária, como no cliente do jogo (D-045).
+const FuncaoPreencher = "lol:fill"
+
 const MaxDiffEloDuo = 2

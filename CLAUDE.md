@@ -54,7 +54,7 @@ go build ./... && go vet ./... && go test ./...
 ## Defesas que existem por causa de bugs reais
 
 - **MATCH silencioso.** Na carga Cypher, um `MATCH` que não encontra o nó faz a relação não ser criada, sem nenhum erro. Já aconteceu duas vezes. Ao mexer em carga ou em ids, o seed deve validar contra o grafo antes de apagar a base, e o `cmd/verificar` deve conferir depois.
-- **Verificação diferencial.** O oráculo `seed.PassaFiltros` e o Cypher implementam as mesmas regras de forma independente (D-024, D-031). Ao mudar uma regra, mude as duas implementações e mantenha-as independentes: uma nunca chama a outra.
+- **Verificação diferencial.** O oráculo `domain.PassaFiltros` (D-043) e o Cypher implementam as mesmas regras de forma independente (D-024, D-031). Ao mudar uma regra, mude as duas implementações e mantenha-as independentes: uma nunca chama a outra.
 
 ## Decisões
 

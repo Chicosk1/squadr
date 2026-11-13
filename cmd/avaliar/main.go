@@ -85,7 +85,7 @@ func executar() error {
 
 	relevante := func(eu domain.Perfil, id string, jogo domain.Jogo) bool {
 		outro, ok := porID[id]
-		return ok && seed.PassaFiltros(eu, outro, jogo) && seed.Grau(eu, outro, jogo) >= 1
+		return ok && domain.PassaFiltros(eu, outro, jogo) && seed.Grau(eu, outro, jogo) >= 1
 	}
 	precisao := func(eu domain.Perfil, ids []string, jogo domain.Jogo) float64 {
 		acertos := 0

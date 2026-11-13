@@ -2,7 +2,9 @@ package matching
 
 import (
 	"context"
+	"errors"
 	"math"
+	"math/bits"
 	"os"
 	"reflect"
 	"regexp"
@@ -63,7 +65,7 @@ func (f *fonteMemoria) BuscarCandidatos(_ context.Context, id string, jogo domai
 	}
 	var saida []domain.Candidato
 	for _, p := range f.perfis {
-		if p.ID != id && seed.PassaFiltros(eu, p, jogo) {
+		if p.ID != id && domain.PassaFiltros(eu, p, jogo) {
 			saida = append(saida, domain.Candidato{ID: p.ID, SinalSocial: f.social[p.ID]})
 		}
 	}
@@ -254,7 +256,7 @@ func TestAprendizGrinder(t *testing.T) {
 	for _, a := range aprendizes {
 		pa, _ := a.PerfilDoJogo(domain.Rust)
 		for _, g := range grinders {
-			if !seed.PassaFiltros(a, g, domain.Rust) {
+			if !domain.PassaFiltros(a, g, domain.Rust) {
 				continue
 			}
 			pg, _ := g.PerfilDoJogo(domain.Rust)
@@ -266,7 +268,7 @@ func TestAprendizGrinder(t *testing.T) {
 			nAG++
 		}
 		for _, b := range aprendizes {
-			if a.ID == b.ID || !seed.PassaFiltros(a, b, domain.Rust) {
+			if a.ID == b.ID || !domain.PassaFiltros(a, b, domain.Rust) {
 				continue
 			}
 			pb, _ := b.PerfilDoJogo(domain.Rust)
@@ -385,5 +387,139 @@ func TestIgnoraPersona(t *testing.T) {
 				t.Fatalf("%s em %s: o ranking mudou ao alterar a persona", eu.ID, pj.Jogo)
 			}
 		}
+	}
+}
+
+// ---------- Explicação de um par ----------
+
+func TestExplicar(t *testing.T) {
+	perfis := gerar(t, 400)
+	f := &fonteMemoria{perfis: perfis, pares: paresDoScript(t)}
+	r := novoRecomendador(t, f)
+	ctx := context.Background()
+
+	// Um usuário com pelo menos 3 candidatos no primeiro jogo dele.
+	var eu domain.Perfil
+	var jogo domain.Jogo
+	var ranking []Recomendacao
+	for _, p := range perfis {
+		recs, err := r.Pontuar(ctx, p.ID, p.Jogos[0].Jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(recs) >= 3 {
+			eu, jogo, ranking = p, p.Jogos[0].Jogo, recs
+			break
+		}
+	}
+	if len(ranking) < 3 {
+		t.Fatal("nenhum usuário com 3 candidatos")
+	}
+
+	// Um candidato do ranking: a explicação repete os números do ranking.
+	for pos, rec := range ranking[:3] {
+		e, err := r.Explicar(ctx, eu.ID, rec.ID, jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.Posicao != pos+1 || e.Candidatos != len(ranking) || !e.Calculado {
+			t.Errorf("%s: posição %d de %d, esperado %d de %d", rec.ID, e.Posicao, e.Candidatos, pos+1, len(ranking))
+		}
+		if !quase(e.ScoreAB, rec.ScoreAB) || !quase(e.ScoreBA, rec.ScoreBA) ||
+			!quase(e.Reciproco, rec.Reciproco) || !quase(e.Score, rec.Score) || e.DeA != rec.DeA {
+			t.Errorf("%s: a explicação não bate com o ranking", rec.ID)
+		}
+		comuns := bits.OnesCount32(e.HorariosComuns)
+		if e.PassaFiltros != (comuns >= 1) {
+			t.Errorf("%s: passa=%v com %d horários em comum", rec.ID, e.PassaFiltros, comuns)
+		}
+	}
+
+	// Alguém barrado por um filtro: fora do ranking, com o motivo, mas com score calculado se joga.
+	for _, outro := range perfis[1:] {
+		if domain.PassaFiltros(eu, outro, jogo) {
+			continue
+		}
+		e, err := r.Explicar(ctx, eu.ID, outro.ID, jogo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.PassaFiltros || e.Posicao != 0 {
+			t.Fatalf("%s: barrado, mas passa=%v posição=%d", outro.ID, e.PassaFiltros, e.Posicao)
+		}
+		barrou := false
+		for _, fl := range e.Filtros {
+			if !fl.Passou {
+				barrou = true
+				if fl.Motivo == "" {
+					t.Errorf("%s: filtro %q barrou sem motivo", outro.ID, fl.Nome)
+				}
+			}
+		}
+		_, joga := outro.PerfilDoJogo(jogo)
+		if !barrou || e.Calculado != joga {
+			t.Errorf("%s: barrou=%v calculado=%v joga=%v", outro.ID, barrou, e.Calculado, joga)
+		}
+		break
+	}
+
+	if _, err := r.Explicar(ctx, eu.ID, "nao-existe", jogo); !errors.Is(err, ErrUsuarioNaoEncontrado) {
+		t.Errorf("B inexistente: erro %v", err)
+	}
+	for _, j := range domain.Jogos {
+		if _, joga := eu.PerfilDoJogo(j); !joga {
+			if _, err := r.Explicar(ctx, eu.ID, ranking[0].ID, j); !errors.Is(err, ErrNaoJoga) {
+				t.Errorf("A não joga %s: erro %v", j, err)
+			}
+			break
+		}
+	}
+}
+
+// ---------- Fator de função (D-045) ----------
+
+// TestFatorFuncao usa dois jogadores iguais em tudo, menos nas funções: o fator precisa
+// separar os encaixes que a média ponderada sozinha deixava em 0,85 a 1,00.
+func TestFatorFuncao(t *testing.T) {
+	m, err := NovaMatriz(paresDoScript(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := domain.Perfil{Disponibilidade: 0xF0F0, Compromisso: "fixo", UsaVoz: "sim", ToleranciaToxicidade: 3,
+		Pesos: domain.Pesos{Horario: 3, Intensidade: 3, Modo: 3, Comunicacao: 3, Funcao: 3, Nivel: 3}}
+	pj := func(jogo domain.Jogo, principal, secundaria string) domain.PerfilJogo {
+		return domain.PerfilJogo{Jogo: jogo, FuncaoPrincipal: principal, FuncaoSecundaria: secundaria,
+			Intensidade: 4, Elo: 4, Nivel: 0.4, NivelDesejado: "parecido", Filas: []string{"solo_duo"},
+			Servidor: "oficial", TamanhoTribo: "2-3", LimiteGrupo: "trio", Wipe: "sempre"}
+	}
+	score := func(a, b domain.PerfilJogo) float64 {
+		s, _ := Unilateral(base, base, a, b, m)
+		return s
+	}
+	casos := []struct {
+		nome        string
+		a, b        domain.PerfilJogo
+		funcao, esp float64
+	}{
+		// Um vai de jungle e o outro de top, a secundária dele: 0,8 × 0,75 = 0,6.
+		{"LoL Jungle/Top × Jungle/Top", pj(domain.LoL, "lol:jungle", "lol:top"), pj(domain.LoL, "lol:jungle", "lol:top"), 0.6, (5 + 0.6) / 6 * 0.8},
+		{"LoL Jungle × Mid", pj(domain.LoL, "lol:jungle", "lol:top"), pj(domain.LoL, "lol:mid", "lol:top"), 0.9, (5 + 0.9) / 6 * 0.95},
+		{"LoL ADC × Suporte", pj(domain.LoL, "lol:adc", "lol:mid"), pj(domain.LoL, "lol:support", "lol:mid"), 1, 1},
+		{"ARK Builder × Builder", pj(domain.ARK, "ark:builder", ""), pj(domain.ARK, "ark:builder", ""), 0.4, (5 + 0.4) / 6 * 0.7},
+		{"ARK Builder × Breeder", pj(domain.ARK, "ark:builder", ""), pj(domain.ARK, "ark:breeder", ""), 0.9, (5 + 0.9) / 6 * 0.95},
+		{"Rust Eletricista × Eletricista", pj(domain.Rust, "rust:electrician", ""), pj(domain.Rust, "rust:electrician", ""), 0.3, (5 + 0.3) / 6 * 0.65},
+	}
+	for _, c := range casos {
+		s, comp := Unilateral(base, base, c.a, c.b, m)
+		if !quase(comp[Funcao], c.funcao) || !quase(s, c.esp) {
+			t.Errorf("%s: função %.3f e score %.3f, esperado %.3f e %.3f", c.nome, comp[Funcao], s, c.funcao, c.esp)
+		}
+	}
+	// O conflito de rota fica bem abaixo do encaixe ideal, e não 7 pontos abaixo, como antes.
+	if d := score(casos[2].a, casos[2].b) - score(casos[0].a, casos[0].b); d < 0.2 {
+		t.Errorf("ADC × Suporte só %.3f acima de Jungle/Top × Jungle/Top", d)
+	}
+	if FatorFuncao(0) != PisoFatorFuncao || FatorFuncao(1) != 1 {
+		t.Error("o fator deve ir de PisoFatorFuncao (função 0) a 1 (função 1)")
 	}
 }

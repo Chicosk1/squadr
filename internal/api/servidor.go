@@ -16,6 +16,8 @@ import (
 
 type Recomendador interface {
 	Recomendar(ctx context.Context, id string, jogo domain.Jogo, k int) ([]matching.Recomendacao, error)
+	// Explicar detalha um par para a tela de comparação (D-043).
+	Explicar(ctx context.Context, idA, idB string, jogo domain.Jogo) (matching.Explicacao, error)
 }
 
 type Repositorio interface {
@@ -24,6 +26,8 @@ type Repositorio interface {
 	RegistrarInteracao(ctx context.Context, x domain.Interacao) (bool, error)
 	// BuscarPerfil devolve domain.ErrNaoEncontrado (embrulhado) se o usuário não existe.
 	BuscarPerfil(ctx context.Context, id string) (domain.Perfil, error)
+	// ListarUsuarios devolve uma página da lista de usuários, em ordem de id (D-043).
+	ListarUsuarios(ctx context.Context, f domain.FiltroUsuarios) (domain.PaginaUsuarios, error)
 }
 
 const (
@@ -69,8 +73,10 @@ func (s *Servidor) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.paginaInicial)
 	mux.HandleFunc("GET /saude", s.saude)
+	mux.HandleFunc("GET /usuarios", s.listarUsuarios)
 	mux.HandleFunc("GET /usuarios/{id}", s.perfil)
 	mux.HandleFunc("GET /usuarios/{id}/recomendacoes", s.recomendacoes)
+	mux.HandleFunc("GET /usuarios/{id}/par/{outro}", s.par)
 	mux.HandleFunc("POST /usuarios", s.criarUsuario)
 	mux.HandleFunc("POST /usuarios/{id}/curtidas", s.interagir(true))
 	mux.HandleFunc("POST /usuarios/{id}/recusas", s.interagir(false))

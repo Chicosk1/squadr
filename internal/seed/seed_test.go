@@ -99,83 +99,6 @@ func TestInvariantes(t *testing.T) {
 	}
 }
 
-// ---------- Filtros ----------
-
-func perfilBase(pj domain.PerfilJogo) domain.Perfil {
-	return domain.Perfil{
-		FaixaEtaria: "18-24", FaixasAceitas: []string{"18-24"},
-		Regiao: "AS", Idiomas: []string{"pt"},
-		Jogos: []domain.PerfilJogo{pj},
-	}
-}
-
-func ark(versao, modo, plataforma string) domain.PerfilJogo {
-	return domain.PerfilJogo{Jogo: domain.ARK, Versao: versao, Modo: modo, Plataforma: plataforma}
-}
-
-func rust(versao string) domain.PerfilJogo {
-	return domain.PerfilJogo{Jogo: domain.Rust, Versao: versao}
-}
-
-func lol(elo int, filas ...string) domain.PerfilJogo {
-	return domain.PerfilJogo{Jogo: domain.LoL, Elo: elo, Filas: filas}
-}
-
-func TestPassaFiltros(t *testing.T) {
-	casos := []struct {
-		nome     string
-		a, b     domain.PerfilJogo
-		esperado bool
-	}{
-		{"ARK: ASE com ASA", ark("ase", "pve", "pc_steam"), ark("asa", "pve", "pc_steam"), false},
-		{"ARK: PvE com PvP", ark("asa", "pve", "pc_steam"), ark("asa", "pvp", "pc_steam"), false},
-		{"ARK: PvE com Ambos", ark("asa", "pve", "pc_steam"), ark("asa", "ambos", "pc_steam"), true},
-		{"ARK: Steam com Epic", ark("asa", "pve", "pc_steam"), ark("asa", "pve", "pc_epic"), true},
-		{"ARK: PC com Xbox", ark("asa", "pve", "pc_steam"), ark("asa", "pve", "xbox"), false},
-		{"Rust: PC com console", rust("pc"), rust("console"), false},
-		{"Rust: PC com PC", rust("pc"), rust("pc"), true},
-		{"LoL: sem fila em comum", lol(3, "solo_duo"), lol(3, "aram"), false},
-		{"LoL: duo com diferença de elo 3", lol(1, "solo_duo"), lol(4, "solo_duo"), false},
-		{"LoL: duo com diferença de elo 2", lol(2, "solo_duo"), lol(4, "solo_duo"), true},
-		{"LoL: duo com sem ranked", lol(domain.SemRanked, "solo_duo"), lol(3, "solo_duo"), false},
-		{"LoL: flex ignora diferença de elo", lol(0, "flex"), lol(9, "flex"), true},
-	}
-	for _, c := range casos {
-		t.Run(c.nome, func(t *testing.T) {
-			got := PassaFiltros(perfilBase(c.a), perfilBase(c.b), c.a.Jogo)
-			if got != c.esperado {
-				t.Errorf("PassaFiltros = %v, esperado %v", got, c.esperado)
-			}
-		})
-	}
-}
-
-func TestPassaFiltrosGerais(t *testing.T) {
-	a := perfilBase(rust("pc"))
-
-	b := perfilBase(rust("pc"))
-	b.Regiao = "EU"
-	if PassaFiltros(a, b, domain.Rust) {
-		t.Error("regiões diferentes não deveriam passar")
-	}
-
-	b = perfilBase(rust("pc"))
-	b.Idiomas = []string{"es"}
-	if PassaFiltros(a, b, domain.Rust) {
-		t.Error("sem idioma em comum não deveria passar")
-	}
-
-	b = perfilBase(rust("pc"))
-	b.FaixaEtaria = "35+"
-	if PassaFiltros(a, b, domain.Rust) {
-		t.Error("faixa etária não aceita por A não deveria passar")
-	}
-
-	if PassaFiltros(a, perfilBase(lol(3, "flex")), domain.Rust) {
-		t.Error("quem não joga o jogo não deveria passar")
-	}
-}
-
 // ---------- Gabarito ----------
 
 func primeiro(t *testing.T, perfis []domain.Perfil, persona string) domain.Perfil {
@@ -263,7 +186,7 @@ func TestInteracoes(t *testing.T) {
 		vistos[k] = true
 
 		a, b := porID[x.De], porID[x.Para]
-		if !PassaFiltros(a, b, x.Jogo) {
+		if !domain.PassaFiltros(a, b, x.Jogo) {
 			t.Fatalf("interação entre %s e %s não passa nos filtros", x.De, x.Para)
 		}
 		grau := Grau(a, b, x.Jogo)
