@@ -22,7 +22,7 @@ A recomendação é sempre contextualizada por jogo: o motor responde "quem é u
 | 4 | Geração de candidatos no grafo | Concluída |
 | 5 | Scoring e reciprocidade | Concluída |
 | 6 | API e formulário (tela de exploração e cadastro em passos, D-043 e D-044; fator de função, D-045) | Concluída |
-| 7 | Avaliação e benchmarks | Pendente |
+| 7 | Avaliação e benchmarks (NDCG@10, ablação e linha de base aleatória, D-046) | Em andamento |
 | 8 | Extras opcionais (Graph Data Science, ajuste de pesos) | Pendente |
 | 9 | Fechamento (monografia e apresentação) | Pendente |
 
@@ -120,7 +120,7 @@ Cadastros e curtidas feitos pela API mudam a base: depois deles, rode `go run ./
 squadr/
 ├── cmd/
 │   ├── api/          # servidor HTTP
-│   ├── avaliar/      # Precision@K do motor contra o gabarito das personas
+│   ├── avaliar/      # NDCG@10, Precision@10 e ablação contra o gabarito das personas
 │   ├── migrar/       # cria constraints e carrega dados de referência
 │   ├── seed/         # gerador de dados mock (apaga e recarrega os usuários)
 │   └── verificar/    # compara o grafo com o oráculo em Go
@@ -130,6 +130,7 @@ squadr/
 │   ├── domain/       # structs do domínio
 │   ├── matching/     # scoring e reciprocidade (Go puro, sem banco)
 │   ├── seed/         # personas e gerador
+│   ├── avaliacao/    # métricas (NDCG, Precision), ablação e fonte em memória
 │   └── api/          # handlers HTTP
 ├── scripts/          # scripts Cypher (schema e dados de referência)
 ├── docs/             # documentação e decisões de projeto
@@ -153,7 +154,8 @@ docker compose stop          # para o banco, mantendo os dados
 docker compose down -v       # apaga o banco e o volume (recomeça do zero)
 go test ./...                # roda os testes
 go run ./cmd/verificar       # confere o grafo contra o oráculo (use os mesmos -usuarios e -semente do seed)
-go run ./cmd/avaliar         # Precision@10 do motor e da ordem do grafo (mesmos -usuarios e -semente do seed)
+go run ./cmd/avaliar         # NDCG@10, Precision@10 e ablação contra o gabarito (mesmos -usuarios e -semente do seed)
+go run ./cmd/avaliar -offline  # a mesma avaliação sem o Neo4j, com a fonte em memória (D-046)
 ```
 
 ## Tecnologias
