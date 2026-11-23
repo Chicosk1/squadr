@@ -582,3 +582,44 @@ O db hit é uma unidade abstrata de trabalho do banco; a métrica que vale para 
   - Todos os scores mudam, então os números da D-037 precisam ser medidos de novo. No caso de controle (D-035), s(aprendiz→grinder) = 0,579, s(grinder→aprendiz) = 0,399 e recíproco = 0,472, contra 0,589 de aprendiz × aprendiz; a ordem continua a mesma.
   - Usuários de LoL cadastrados antes, sem secundária, continuam na base até o próximo seed e podem formar a dupla impossível; para eles, o fator limita o score a 0,55.
   - Testes: `TestFatorFuncao` (tabela acima e distância mínima entre ADC × Suporte e Jungle/Top × Jungle/Top), `TestSecundariaPreencher` e o caso "LoL sem secundária" em `TestCriarUsuarioInvalido`.
+
+---
+
+## Fase 7 — Avaliação
+
+## D-046 — NDCG@10 graduado, ablação e linha de base aleatória (com avaliação sem banco)
+
+- **Data:** 23/11/2026
+- **Status:** Proposta (afeta o desenho da avaliação; levar ao orientador)
+- **Contexto:** a D-037 mostrou que o Precision@10 binário satura e deixou para a Fase 7 o NDCG@10 graduado, a ablação e a comparação com a seleção aleatória entre candidatos compatíveis, que é a linha de base da pergunta de pesquisa. O estudo com jogadores fica para o TCC 2, então a avaliação do TCC 1 é feita contra o gabarito das personas.
+- **Opções consideradas:**
+  - **Ganho do NDCG:** o próprio grau (0, 1, 2); ou exponencial (2^grau − 1).
+  - **Ideal (IDCG):** os candidatos pontuados (até 300); ou todos os compatíveis (filtros rígidos e ao menos um horário em comum).
+  - **Linha de base aleatória:** sorteio com semente e repetições; ou a esperança exata do sorteio.
+  - **Onde rodar:** só no Neo4j; ou também em uma fonte em memória com as mesmas regras.
+- **Decisão:**
+  - NDCG@10 = DCG@10 / IDCG@10, com DCG@10 = Σ grau_i / log2(i + 1) (Järvelin; Kekäläinen, 2002). Ganho linear: o grau 2 vale o dobro do grau 1.
+  - O ideal usa **todos os compatíveis**, para o corte de 300 (D-029) também contar contra o motor. Consultas sem nenhum relevante possível ficam fora da média do NDCG (no Precision continuam contando zero, como na D-037).
+  - Aleatório entre compatíveis pela **esperança exata**: cada posição recebe, em média, o grau médio do conjunto. Não depende de semente nem de repetições, e `TestAleatorioEsperado` confere contra a média de todos os sorteios.
+  - Ablação, todas sobre os mesmos candidatos: aleatório entre compatíveis → ordem do grafo → score unilateral s(A→B) → recíproco sem sinal social → motor completo. Resultado geral, por jogo e por persona.
+  - O código fica em `internal/avaliacao`. O `cmd/avaliar` lê o Neo4j por padrão e aceita `-offline`, que usa `avaliacao.FonteMemoria`: oráculo dos filtros, mínimo de horários, exclusão de quem já foi avaliado, ordem por horários, complemento e id, corte e sinal social, as mesmas regras que o `cmd/verificar` confere contra o Cypher.
+- **Motivo:** o ganho linear e o ideal sobre todos os compatíveis são as escolhas mais simples de explicar na banca. A esperança exata tira o ruído do sorteio da comparação. A fonte em memória permite rodar a avaliação sem Docker, e o resultado pode ser conferido contra as medições feitas no banco.
+- **Consequências:**
+  - **Conferência da fonte em memória:** a ordem do grafo reproduz exatamente o Precision@10 medido no Neo4j na D-037 (0,942; ARK 0,959; Rust 0,848; LoL 1,000). Com o fator de função desligado (`PisoFatorFuncao` = 1, só para o diagnóstico), o motor também reproduz os números da D-037 (0,981; 0,998; 0,933; 1,000).
+  - **Resultado** (`go run ./cmd/avaliar -offline`; 10 mil usuários, semente 42, 214 consultas, código com a D-045):
+
+    | Variante | NDCG@10 geral | ARK | Rust | LoL | Precision@10 geral |
+    |---|---|---|---|---|---|
+    | Aleatório entre compatíveis | 0,773 | 0,918 | 0,435 | 0,874 | 0,838 |
+    | Ordem do grafo | 0,880 | 0,961 | 0,789 | 0,855 | 0,942 |
+    | Score unilateral s(A→B) | 0,887 | 0,968 | 0,632 | 1,000 | 0,943 |
+    | Recíproco, sem sinal social | 0,885 | 0,974 | 0,614 | 1,000 | 0,941 |
+    | Motor completo | 0,885 | 0,964 | 0,628 | 1,000 | 0,941 |
+    | *Diagnóstico: motor sem fator de função* | *0,960* | *1,000* | *0,858* | *0,995* | *0,981* |
+
+  - O motor supera o aleatório entre compatíveis (0,885 × 0,773) e empata com a ordem do grafo no geral. Ganha no LoL (1,000 × 0,855) e **perde no Rust** (0,628 × 0,789), sobretudo em RUST-CASUAL e RUST-APRENDIZ.
+  - **Conflito entre a D-045 e o gabarito:** o fator de função penaliza pares de mesma função, e o gabarito trata pares de mesma persona (que têm as mesmas funções) como ideais (grau 2). Sem o fator, o NDCG@10 sobe para 0,960. Calibrar o fator por jogo (ele só é crítico no LoL) ou revisar o gabarito do Rust e do multi-jogo; até lá, declarar como ameaça à validade.
+  - O sinal social não muda a média (0,885 com e sem), o que afasta a ameaça da D-026 nesta base.
+  - O corte de 300 guarda 32,8% dos relevantes compatíveis: há muito mais relevantes do que o top 10 precisa, mas o NDCG mede o que se perde.
+  - A latência do modo `-offline` não vale para a monografia: ela não inclui o banco. Para os números oficiais, rodar sem `-offline`, depois de `go run ./cmd/seed`.
+  - Testes: `TestPrecisaoK`, `TestNDCG`, `TestAleatorioEsperado`, `TestFonteMemoria` (filtros, horários, ordem, corte e sinal social por força bruta) e `TestExecutar`.
